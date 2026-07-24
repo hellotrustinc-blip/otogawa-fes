@@ -1,5 +1,6 @@
 {
   "timeZone": "Asia/Tokyo",
+  "runtimeVersion": "V8",
   "oauthScopes": [
     "https://mail.google.com/",
     "https://www.googleapis.com/auth/drive",
