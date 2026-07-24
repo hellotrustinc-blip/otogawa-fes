@@ -47,10 +47,13 @@
   .btn{width:100%;margin-top:18px}
   .btn:hover,.retry-btn:hover{background:var(--red-d)}
   .waiting{border:1px dashed rgba(143,44,34,.5);background:#fff7ef;border-radius:8px;padding:16px;color:var(--red-d);font-weight:700}
+  .upload-alert{margin-top:16px;border:2px solid var(--red);background:#fff1e8;border-radius:8px;padding:12px;color:var(--red-d);font-weight:700}
+  .upload-alert.done{border-color:#2f7d4f;background:#eef8f1;color:#24613c}
   .upload-row{margin-top:14px;padding:12px;border:1px solid rgba(26,20,16,.12);border-radius:8px;background:#fff}
   .upload-meta{display:flex;gap:10px;justify-content:space-between;font-size:.85rem}
   .upload-name{overflow-wrap:anywhere}
   .upload-status{white-space:nowrap;color:var(--navy)}
+  .upload-progress-text{display:block;margin-top:6px;color:#4f4138;font-size:.85rem}
   .progress{height:8px;background:var(--paper2);border-radius:999px;overflow:hidden;margin-top:8px}
   .progress span{display:block;width:0;height:100%;background:var(--gold);transition:width .2s}
   .retry-btn{margin-top:10px;padding:8px 12px;font-size:.85rem}
@@ -99,6 +102,7 @@
         <li>周囲の方に配慮した動画をお寄せください。</li>
       </ul>
       <div id="upload-waiting" class="waiting">動画投稿は準備中です。</div>
+      <div id="upload-alert" class="upload-alert sans" hidden>⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください</div>
       <form id="upload-form">
         <div id="upload-ready">
           <label class="sans">お名前

@@ -71,3 +71,28 @@ Chromeヘッドレス実測（幅390px）で以下の不合格を検出した。
 制約:
 - 修正対象は douga.html / douga.js のレイアウト・CSSのみ。GASファイル・既存テストのロジックは変更禁止（テストの追加は可）
 - 修正後、`node --check douga.js`・`node tmp/test_gas_router.mjs`・`node tmp/test_upload_client.mjs` がすべて exit 0 のままであること（ブラウザ再実測はClaude側で行う）
+
+---
+
+## 追補2（発注元要望・機能追加ラウンド／承認済み・完遂せよ）
+
+サイトは公開済み・GASは本番稼働中。**GASファイルは一切変更禁止**（再デプロイ不要を維持）。douga.html / douga.js のみ変更。
+
+### 1. アップロード進捗の数値表示
+- 各ファイルの進捗バー付近に「**12.3 MB / 85.0 MB（14%）**」形式で数値を出し、送信中は随時更新する
+- 1MB未満はKB表示（例: 512 KB）。小数1桁。バイト整形（formatBytes）と進捗文字列生成（formatProgress等）は**純関数としてexport**し、tmp/test_upload_client.mjs にassertを追加する（KB/MB境界・0%・100%・途中%）
+
+### 2. アップロード中の離脱防止
+- 送信中は目立つ注意帯を表示: 「⚠ アップロード中です。終わるまで**画面を閉じたり、他のアプリに切り替えたり**しないでください」
+- 送信中のみ `beforeunload` で離脱確認ダイアログを有効化（全ファイル完了・失敗・中断で必ず解除）
+- 対応ブラウザでは Screen Wake Lock（`navigator.wakeLock.request('screen')`）で画面消灯を防ぐ。**try-catchで包み非対応機種では何もしない**。`visibilitychange` で復帰時に再取得。送信終了で release
+- 全ファイル完了時: 注意帯を消し「✅ 投稿が完了しました。画面を閉じて大丈夫です」を表示
+
+### 3. モックモード拡張（検収用）
+- `?mock=1` のとき、進捗50%相当のダミーアップロード項目1件（数値表示つき）と注意帯を**表示状態でレンダリング**する（Claudeが画面実測で検収するため）
+
+### 合格条件（すべて exit 0）
+1. `node --check douga.js`
+2. `node tmp/test_gas_router.mjs`（既存・変更禁止のまま全PASS）
+3. `node tmp/test_upload_client.mjs`（新関数のassert追加込みで全PASS）
+4. テスト内で「注意帯文言がdouga.html/douga.jsに存在すること」を機械確認

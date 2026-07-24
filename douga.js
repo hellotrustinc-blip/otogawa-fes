@@ -64,6 +64,22 @@ export function formatJstDateTime(input = new Date()) {
   return `${parts.year}-${parts.month}-${parts.day}_${parts.hour}${parts.minute}`;
 }
 
+export function formatBytes(bytes) {
+  const value = Math.max(0, Number(bytes) || 0);
+  const mb = 1024 * 1024;
+  if (value < mb) {
+    return `${Math.round(value / 1024)} KB`;
+  }
+  return `${(value / mb).toFixed(1)} MB`;
+}
+
+export function formatProgress(loadedBytes, totalBytes) {
+  const total = Math.max(0, Number(totalBytes) || 0);
+  const loaded = Math.min(Math.max(0, Number(loadedBytes) || 0), total || Math.max(0, Number(loadedBytes) || 0));
+  const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+  return `${formatBytes(loaded)} / ${formatBytes(total)}（${percent}%）`;
+}
+
 const MOCK_ITEMS = [
   { id: 'mock001', name: '2026-07-24_0900_山車の出発.mp4', createdTime: '2026-07-24T00:00:00Z', size: '73400320' },
   { id: 'mock002', name: '2026-07-23_1845_太鼓と神輿.mp4', createdTime: '2026-07-23T09:45:00Z', size: '125829120' },
@@ -72,6 +88,92 @@ const MOCK_ITEMS = [
   { id: 'mock005', name: '2026-07-22_1500_子どもたち.mp4', createdTime: '2026-07-22T06:00:00Z', size: '46137344' },
   { id: 'mock006', name: '2026-07-21_1000_準備風景.mp4', createdTime: '2026-07-21T01:00:00Z', size: '39845888' }
 ];
+
+let activeUploadCount = 0;
+let wakeLock = null;
+let wakeLockReleaseHandler = null;
+
+const UPLOAD_ALERT_TEXT = '⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください';
+const UPLOAD_DONE_TEXT = '✅ 投稿が完了しました。画面を閉じて大丈夫です';
+
+function getUploadAlert() {
+  if (typeof document === 'undefined') return null;
+  return document.getElementById('upload-alert');
+}
+
+function beforeUnloadHandler(event) {
+  event.preventDefault();
+  event.returnValue = '';
+}
+
+async function requestWakeLock() {
+  if (typeof navigator === 'undefined' || !navigator.wakeLock || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLockReleaseHandler = () => {
+      wakeLock = null;
+    };
+    wakeLock.addEventListener('release', wakeLockReleaseHandler);
+  } catch (err) {
+    wakeLock = null;
+  }
+}
+
+async function releaseWakeLock() {
+  if (!wakeLock) return;
+  const current = wakeLock;
+  wakeLock = null;
+  try {
+    if (wakeLockReleaseHandler) current.removeEventListener('release', wakeLockReleaseHandler);
+    await current.release();
+  } catch (err) {
+    // 非対応機種や解除済みの場合は何もしません。
+  } finally {
+    wakeLockReleaseHandler = null;
+  }
+}
+
+function showUploadAlert(text = UPLOAD_ALERT_TEXT, done = false) {
+  const alert = getUploadAlert();
+  if (!alert) return;
+  alert.textContent = text;
+  alert.classList.toggle('done', done);
+  alert.hidden = false;
+}
+
+function hideUploadAlert() {
+  const alert = getUploadAlert();
+  if (!alert) return;
+  alert.hidden = true;
+  alert.classList.remove('done');
+}
+
+async function beginUploadGuard() {
+  activeUploadCount += 1;
+  if (activeUploadCount === 1) {
+    showUploadAlert();
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    await requestWakeLock();
+  }
+}
+
+async function endUploadGuard({ completed = false } = {}) {
+  activeUploadCount = Math.max(0, activeUploadCount - 1);
+  if (activeUploadCount !== 0) return;
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+  await releaseWakeLock();
+  if (completed) {
+    showUploadAlert(UPLOAD_DONE_TEXT, true);
+  } else {
+    hideUploadAlert();
+  }
+}
+
+function handleVisibilityChange() {
+  if (activeUploadCount > 0 && document.visibilityState === 'visible') {
+    requestWakeLock();
+  }
+}
 
 function postToGas(gasUrl, payload) {
   return fetch(gasUrl, {
@@ -147,16 +249,16 @@ async function uploadVideo(file, uploaderName, ui, gasUrl) {
         throw new Error(`アップロードに失敗しました（${response.status}）。`);
       }
       retries = 0;
-      ui.update(Math.round((start / file.size) * 100), 'アップロード中');
+      ui.update(Math.round((start / file.size) * 100), 'アップロード中', start, file.size);
     } catch (err) {
       retries += 1;
       if (retries > 3) {
         ui.fail('通信が途切れました。「再開」を押してください。', async () => {
           start = await queryUploadPosition(init.sessionUri, file.size);
           retries = 0;
-          await run();
+          return run();
         });
-        return;
+        return false;
       }
       start = await queryUploadPosition(init.sessionUri, file.size);
     }
@@ -165,9 +267,10 @@ async function uploadVideo(file, uploaderName, ui, gasUrl) {
   if (finalId) {
     await postToGas(gasUrl, { action: 'finalizeUpload', fileId: finalId });
   }
-  ui.update(100, '完了しました');
+  ui.update(100, '完了しました', file.size, file.size);
+  return true;
   };
-  await run();
+  return run();
 }
 
 function createUploadRow(file) {
@@ -178,26 +281,48 @@ function createUploadRow(file) {
       <span class="upload-name"></span>
       <span class="upload-status">待機中</span>
     </div>
+    <span class="upload-progress-text"></span>
     <div class="progress" aria-hidden="true"><span></span></div>
     <button class="retry-btn" type="button" hidden>再開</button>
   `;
   row.querySelector('.upload-name').textContent = file.name;
   const bar = row.querySelector('.progress span');
   const status = row.querySelector('.upload-status');
+  const progressText = row.querySelector('.upload-progress-text');
   const retry = row.querySelector('.retry-btn');
+  progressText.textContent = formatProgress(0, file.size);
   return {
     element: row,
-    update(percent, text) {
+    update(percent, text, loadedBytes = Math.round((file.size * percent) / 100), totalBytes = file.size) {
       bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
       status.textContent = text;
+      progressText.textContent = formatProgress(loadedBytes, totalBytes);
       retry.hidden = true;
     },
     fail(text, onRetry) {
       status.textContent = text;
-      retry.hidden = false;
-      retry.onclick = onRetry;
+      retry.hidden = typeof onRetry !== 'function';
+      retry.onclick = async () => {
+        if (typeof onRetry !== 'function') return;
+        await beginUploadGuard();
+        try {
+          const ok = await onRetry();
+          await endUploadGuard({ completed: ok !== false });
+        } catch (err) {
+          status.textContent = err.message || '再開に失敗しました。';
+          await endUploadGuard({ completed: false });
+        }
+      };
     }
   };
+}
+
+function renderMockUpload(list) {
+  const file = { name: '検収用ダミー動画.mp4', size: 85 * 1024 * 1024, type: 'video/mp4' };
+  const row = createUploadRow(file);
+  list.appendChild(row.element);
+  row.update(50, 'アップロード中', Math.round(file.size * 0.5), file.size);
+  showUploadAlert();
 }
 
 function renderGallery(items, root) {
@@ -256,6 +381,8 @@ function initPage() {
   const list = document.getElementById('upload-list');
   const gallery = document.getElementById('gallery');
 
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
   if (!gasUrl && !isMock) {
     ready.hidden = true;
     waiting.hidden = false;
@@ -270,6 +397,10 @@ function initPage() {
       gallery.innerHTML = '<p class="muted">動画一覧を読み込めませんでした。</p>';
     });
 
+  if (isMock) {
+    renderMockUpload(list);
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const files = Array.from(document.getElementById('video-files').files || []);
@@ -278,18 +409,38 @@ function initPage() {
       alert('モックモードのため、実際のアップロードは行いません。');
       return;
     }
+    const uploadTargets = [];
+    let completedAll = files.length > 0;
     for (const file of files) {
       const row = createUploadRow(file);
       list.appendChild(row.element);
       if (!file.type.startsWith('video/')) {
         row.fail('動画ファイルを選んでください。', null);
+        completedAll = false;
         continue;
       }
       if (file.size > MAX_VIDEO_BYTES) {
         row.fail('1本4GBまでです。', null);
+        completedAll = false;
         continue;
       }
-      await uploadVideo(file, uploaderName, row, gasUrl);
+      uploadTargets.push({ file, row });
+    }
+    if (uploadTargets.length > 0) {
+      await beginUploadGuard();
+      let currentTarget = null;
+      try {
+        for (const target of uploadTargets) {
+          currentTarget = target;
+          const ok = await uploadVideo(target.file, uploaderName, target.row, gasUrl);
+          if (!ok) completedAll = false;
+        }
+      } catch (err) {
+        if (currentTarget) currentTarget.row.fail(err.message || 'アップロードに失敗しました。', null);
+        completedAll = false;
+      } finally {
+        await endUploadGuard({ completed: completedAll });
+      }
     }
     const items = await loadGallery(gasUrl, false);
     renderGallery(items, gallery);
