@@ -98,7 +98,9 @@ const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf
 assert.match(html, /mock=1/);
 assert.match(html, /動画の投稿にあたって（個人情報の取り扱い・著作権）/);
 assert.match(html, /1\. 投稿できる動画/);
-assert.match(html, /2\. 動画の利用について（著作権）/);
+assert.match(html, /2\. 動画の著作権について/);
+assert.match(html, /保存会に譲渡されるものとします/);
+assert.match(html, /削除・返却の申し立てはできないものとします/);
 assert.match(html, /3\. 写り込みへの配慮/);
 assert.match(html, /4\. 個人情報の取り扱い/);
 assert.match(html, /5\. お問い合わせ/);
