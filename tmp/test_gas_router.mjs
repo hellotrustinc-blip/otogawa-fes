@@ -13,6 +13,11 @@ function makeContext() {
     { id: 'new', name: 'new.mp4', createdTime: '2026-07-22T00:00:00Z', size: '2' },
     { id: 'mid', name: 'mid.mp4', createdTime: '2026-07-21T00:00:00Z', size: '3' }
   ];
+  const permissionMap = new Map([
+    ['old', [{ id: 'anyone-old', type: 'anyone' }, { id: 'user-old', type: 'user' }]],
+    ['new', [{ id: 'user-new', type: 'user' }]],
+    ['mid', [{ id: 'anyone-mid', type: 'anyone' }]]
+  ]);
   const context = {
     console,
     JSON,
@@ -46,6 +51,13 @@ function makeContext() {
         }
         if (url.includes('upload/drive/v3/files?uploadType=resumable')) {
           return response(200, { Location: 'https://upload.example/session' }, '');
+        }
+        if (/\/permissions\/[^/?]+$/.test(url) && options.method === 'delete') {
+          return response(204, {}, '');
+        }
+        if (url.includes('/permissions?fields=permissions')) {
+          const fileId = decodeURIComponent(url.match(/files\/([^/]+)\/permissions/)[1]);
+          return response(200, {}, JSON.stringify({ permissions: permissionMap.get(fileId) || [] }));
         }
         if (url.includes('/permissions')) {
           return response(200, {}, '{}');
@@ -200,37 +212,39 @@ function parseOutput(output) {
 
 {
   const { context, fetchCalls } = makeContext();
-  const output = context.doGet({ parameter: { action: 'list' } });
+  const output = context.doPost({ postData: { contents: JSON.stringify({
+    action: 'finalizeUpload',
+    fileId: 'file123'
+  }) } });
   const json = parseOutput(output);
   assert.equal(json.ok, true);
-  assert.deepEqual(json.items.map((item) => item.id), ['new', 'mid', 'old']);
   const permissionCalls = fetchCalls.filter((call) => call.url.includes('/permissions'));
-  assert.deepEqual(
-    permissionCalls.map((call) => call.url.match(/files\/([^/]+)\/permissions/)[1]),
-    ['new', 'mid', 'old']
-  );
+  assert.equal(permissionCalls.length, 0);
 }
 
 {
   const { context } = makeContext();
-  context.UrlFetchApp.fetch = (url, options = {}) => {
-    if (url.includes('/drive/v3/files?')) {
-      return response(200, {}, JSON.stringify({
-        files: [
-          { id: 'a', name: 'a.mp4', createdTime: '2026-07-24T00:00:00Z', size: '1' },
-          { id: 'b', name: 'b.mp4', createdTime: '2026-07-23T00:00:00Z', size: '1' }
-        ]
-      }));
-    }
-    if (url.includes('/permissions')) {
-      throw new Error('permission create failed');
-    }
-    return response(200, {}, '{}');
-  };
   const output = context.doGet({ parameter: { action: 'list' } });
+  assert.equal(output.value, '大戸川祭礼サイト 動画投稿API');
+}
+
+{
+  const { context } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({ action: 'list' }) } });
   const json = parseOutput(output);
-  assert.equal(json.ok, true);
-  assert.deepEqual(json.items.map((item) => item.id), ['a', 'b']);
+  assert.equal(json.ok, false);
+}
+
+{
+  const { context, fetchCalls } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({ action: 'privatizeAll' }) } });
+  const json = parseOutput(output);
+  assert.deepEqual(json, { ok: true, checked: 3, privatized: 2 });
+  const deleteCalls = fetchCalls.filter((call) => call.options.method === 'delete');
+  assert.deepEqual(
+    deleteCalls.map((call) => call.url.match(/permissions\/([^/?]+)$/)[1]),
+    ['anyone-old', 'anyone-mid']
+  );
 }
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');

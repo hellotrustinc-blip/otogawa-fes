@@ -36,6 +36,8 @@ assert.equal(formatBytes(1024 * 1024), '1.0 MB');
 assert.equal(formatBytes(12.25 * 1024 * 1024), '12.3 MB');
 assert.equal(getUploadOrigin(), '');
 assert.match(source, /origin:\s*getUploadOrigin\(\)/);
+assert.doesNotMatch(source, /action:\s*['"]finalizeUpload['"]/);
+assert.doesNotMatch(source, /action=list|\?action=list|renderGallery|openModal|video-modal/);
 assert.equal(formatProgress(0, 85 * 1024 * 1024), '0 KB / 85.0 MB（0%）');
 assert.equal(formatProgress(12.25 * 1024 * 1024, 85 * 1024 * 1024), '12.3 MB / 85.0 MB（14%）');
 assert.equal(formatProgress(85 * 1024 * 1024, 85 * 1024 * 1024), '85.0 MB / 85.0 MB（100%）');
@@ -92,23 +94,13 @@ assert.deepEqual(retryEvents, [
 ]);
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');
-const galleryHtml = await readFile(new URL('../gallery.html', import.meta.url), 'utf8');
 const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 assert.match(html, /mock=1/);
 assert.match(`${html}\n${source}`, /アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください/);
-assert.match(source, /MOCK_ITEMS[\s\S]*mock006/);
+assert.match(source, /投稿が完了しました。動画は保存会にお届けしました。画面を閉じて大丈夫です/);
 assert.doesNotMatch(html, /id="gallery"|id="video-modal"|action=list/);
-assert.match(html, /href="gallery\.html"/);
-assert.match(galleryHtml, /id="gallery"/);
-assert.match(galleryHtml, /id="video-modal"/);
-assert.match(galleryHtml, /\?mock=1|mock=1/);
-assert.doesNotMatch(galleryHtml, /id="upload-form"|id="video-files"|動画ファイル/);
-assert.match(galleryHtml, /href="douga\.html"/);
-assert.match(indexHtml, /href="gallery\.html">みんなの動画/);
-assert.equal(
-  html.match(/const GAS_URL = '([^']+)'/)[1],
-  galleryHtml.match(/const GAS_URL = '([^']+)'/)[1]
-);
+assert.doesNotMatch(html, /投稿された動画を見る|href="gallery\.html"|>見る/);
+assert.match(indexHtml, /href="douga\.html">動画を投稿/);
 
 const browserHarness = await readFile(new URL('./browser_e2e.html', import.meta.url), 'utf8');
 assert.match(browserHarness, /type="module"/);

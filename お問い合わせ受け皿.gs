@@ -27,10 +27,6 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  var p = (e && e.parameter) ? e.parameter : {};
-  if (p.action === 'list') {
-    return json_(listVideos_());
-  }
   return ContentService.createTextOutput('大戸川祭礼サイト 動画投稿API');
 }
 
@@ -93,6 +89,7 @@ function handleVideoAction_(payload) {
   try {
     if (payload.action === 'initUpload') return initUpload_(payload);
     if (payload.action === 'finalizeUpload') return finalizeUpload_(payload);
+    if (payload.action === 'privatizeAll') return privatizeAll_();
     return { ok: false, error: '指定された操作を確認できませんでした。' };
   } catch (err) {
     return { ok: false, error: err.message || '処理中に問題が発生しました。' };
@@ -145,72 +142,77 @@ function initUpload_(payload) {
 }
 
 function finalizeUpload_(payload) {
-  var fileId = String(payload.fileId || '').trim();
-  if (!fileId) return { ok: false, error: '動画IDを確認できませんでした。' };
-  var url = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '/permissions';
-  var response = UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json; charset=utf-8',
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    payload: JSON.stringify({ role: 'reader', type: 'anyone' }),
-    muteHttpExceptions: true
-  });
-  var code = response.getResponseCode();
-  if (code < 200 || code >= 300) {
-    return { ok: false, error: '動画の公開設定に失敗しました。' };
-  }
   return { ok: true };
 }
 
-function listVideos_() {
-  try {
-    var folderId = getUploadFolderId_();
-    var query = "'" + folderId + "' in parents and trashed=false";
+function privatizeAll_() {
+  var folderId = getUploadFolderId_();
+  var files = listUploadFileIds_(folderId);
+  var checked = 0;
+  var privatized = 0;
+  files.forEach(function(file) {
+    if (!file.id) return;
+    checked += 1;
+    try {
+      var permissions = listPermissions_(file.id);
+      permissions.forEach(function(permission) {
+        if (permission.type !== 'anyone' || !permission.id) return;
+        try {
+          deletePermission_(file.id, permission.id);
+          privatized += 1;
+        } catch (err) {
+          // 1件の失敗で他の非公開化を止めないため、単体失敗は握りつぶします。
+        }
+      });
+    } catch (err) {
+      // 権限一覧の取得に失敗したファイルがあっても、他のファイルを継続します。
+    }
+  });
+  return { ok: true, checked: checked, privatized: privatized };
+}
+
+function listUploadFileIds_(folderId) {
+  var query = "'" + folderId + "' in parents and trashed=false";
+  var files = [];
+  var pageToken = '';
+  do {
     var url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(query) +
-      '&fields=files(id,name,createdTime,size)&orderBy=createdTime desc&pageSize=100';
+      '&fields=nextPageToken,files(id)&pageSize=1000' +
+      (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
     var response = UrlFetchApp.fetch(url, {
       method: 'get',
       headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
       muteHttpExceptions: true
     });
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      return { ok: false, error: '動画一覧を取得できませんでした。' };
+    if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+      throw new Error('動画ファイルを確認できませんでした。');
     }
     var data = JSON.parse(response.getContentText() || '{"files":[]}');
-    var files = (data.files || []).sort(function(a, b) {
-      return String(b.createdTime).localeCompare(String(a.createdTime));
-    });
-    files.slice(0, 20).forEach(function(file) {
-      ensureAnyoneReader_(file.id);
-    });
-    var items = files.map(function(file) {
-      return {
-        id: file.id,
-        name: file.name,
-        createdTime: file.createdTime,
-        size: file.size || ''
-      };
-    });
-    return { ok: true, items: items };
-  } catch (err) {
-    return { ok: false, error: '動画一覧を取得できませんでした。' };
-  }
+    files = files.concat(data.files || []);
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+  return files;
 }
 
-function ensureAnyoneReader_(fileId) {
-  if (!fileId) return;
-  try {
-    UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '/permissions', {
-      method: 'post',
-      contentType: 'application/json; charset=utf-8',
-      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-      payload: JSON.stringify({ role: 'reader', type: 'anyone' }),
-      muteHttpExceptions: true
-    });
-  } catch (err) {
-    // 一覧全体を止めないため、権限補正の単体失敗は握りつぶします。
+function listPermissions_(fileId) {
+  var response = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '/permissions?fields=permissions(id,type)', {
+    method: 'get',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error('権限を確認できませんでした。');
   }
+  var data = JSON.parse(response.getContentText() || '{"permissions":[]}');
+  return data.permissions || [];
+}
+
+function deletePermission_(fileId, permissionId) {
+  UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '/permissions/' + encodeURIComponent(permissionId), {
+    method: 'delete',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
 }
 
 function getUploadFolderId_() {

@@ -1,4 +1,4 @@
-// E2E実アップロード試験: initUpload → チャンクPUT → finalize → list確認
+// E2E実アップロード試験: initUpload → チャンクPUT → finalize互換確認 → privatizeAll
 // 使い方: node tmp/e2e_upload_test.mjs <GAS_EXEC_URL>
 const EXEC = process.argv[2];
 if (!EXEC) { console.error('usage: node e2e_upload_test.mjs <exec url>'); process.exit(1); }
@@ -40,21 +40,19 @@ const meta = await put.json();
 if (!meta.id) fail('PUT応答にidなし: ' + JSON.stringify(meta).slice(0, 200));
 console.log('2) チャンクPUT OK / fileId=', meta.id);
 
-// 3) finalize（公開権限付与）
+// 3) finalize（後方互換のno-op）
 const fin = await postJson({ action: 'finalizeUpload', fileId: meta.id });
 if (!fin.ok) fail('finalize: ' + JSON.stringify(fin));
-console.log('3) finalize OK');
+console.log('3) finalize no-op OK');
 
-// 4) listに出るか
-const listRes = await fetch(EXEC + '?action=list');
-const list = await listRes.json();
-if (!list.ok) fail('list: ' + JSON.stringify(list).slice(0, 200));
-const hit = (list.items || []).find((x) => x.id === meta.id);
-if (!hit) fail('listにテストファイルが見つからない');
-console.log('4) list反映 OK / name=', hit.name, '/ createdTime=', hit.createdTime);
+// 4) 公開剥がしアクションが動くか
+const priv = await postJson({ action: 'privatizeAll' });
+if (!priv.ok) fail('privatizeAll: ' + JSON.stringify(priv));
+console.log('4) privatizeAll OK / checked=', priv.checked, '/ privatized=', priv.privatized);
 
-// 5) 公開閲覧できるか（匿名でサムネイル/プレビューURLに到達可能か）
-const prev = await fetch(`https://drive.google.com/file/d/${meta.id}/preview`, { redirect: 'follow' });
-console.log('5) preview HTTP', prev.status, prev.status === 200 ? 'OK' : '（要目視確認）');
+// 5) listアクションが外部メタデータを返さないか
+const list = await postJson({ action: 'list' });
+if (list.ok) fail('listが有効なままです: ' + JSON.stringify(list).slice(0, 200));
+console.log('5) list disabled OK');
 
 console.log('E2E_ALL_PASS fileId=' + meta.id);

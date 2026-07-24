@@ -80,21 +80,12 @@ export function formatProgress(loadedBytes, totalBytes) {
   return `${formatBytes(loaded)} / ${formatBytes(total)}（${percent}%）`;
 }
 
-const MOCK_ITEMS = [
-  { id: 'mock001', name: '2026-07-24_0900_山車の出発.mp4', createdTime: '2026-07-24T00:00:00Z', size: '73400320' },
-  { id: 'mock002', name: '2026-07-23_1845_太鼓と神輿.mp4', createdTime: '2026-07-23T09:45:00Z', size: '125829120' },
-  { id: 'mock003', name: '2026-07-23_1710_境内の様子.mp4', createdTime: '2026-07-23T08:10:00Z', size: '58720256' },
-  { id: 'mock004', name: '2026-07-22_2030_夜の巡行.mp4', createdTime: '2026-07-22T11:30:00Z', size: '184549376' },
-  { id: 'mock005', name: '2026-07-22_1500_子どもたち.mp4', createdTime: '2026-07-22T06:00:00Z', size: '46137344' },
-  { id: 'mock006', name: '2026-07-21_1000_準備風景.mp4', createdTime: '2026-07-21T01:00:00Z', size: '39845888' }
-];
-
 let activeUploadCount = 0;
 let wakeLock = null;
 let wakeLockReleaseHandler = null;
 
 const UPLOAD_ALERT_TEXT = '⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください';
-const UPLOAD_DONE_TEXT = '✅ 投稿が完了しました。画面を閉じて大丈夫です';
+const UPLOAD_DONE_TEXT = '✅ 投稿が完了しました。動画は保存会にお届けしました。画面を閉じて大丈夫です';
 
 function getUploadAlert() {
   if (typeof document === 'undefined') return null;
@@ -316,12 +307,6 @@ async function uploadVideo(file, uploaderName, ui, gasUrl) {
 
   if (!result.ok) return false;
   ui.update(100, '完了しました', file.size, file.size);
-
-  if (result.fileId) {
-    postToGas(gasUrl, { action: 'finalizeUpload', fileId: result.fileId }).catch((err) => {
-      console.warn('finalizeUpload failed', err);
-    });
-  }
   return true;
 }
 
@@ -375,54 +360,6 @@ function renderMockUpload(list) {
   list.appendChild(row.element);
   row.update(50, 'アップロード中', Math.round(file.size * 0.5), file.size);
   showUploadAlert();
-}
-
-function renderGallery(items, root) {
-  root.innerHTML = '';
-  items.forEach((item) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'video-card';
-    button.dataset.id = item.id;
-    button.innerHTML = `
-      <img alt="" loading="lazy">
-      <span class="video-title"></span>
-      <span class="video-date"></span>
-    `;
-    button.querySelector('img').src = item.id.startsWith('mock')
-      ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225"><rect width="400" height="225" fill="#8f2c22"/><circle cx="200" cy="112" r="40" fill="#f7f1e6"/><path d="M190 88v48l40-24z" fill="#b23a2e"/></svg>`)
-      : `https://drive.google.com/thumbnail?id=${encodeURIComponent(item.id)}&sz=w400`;
-    button.querySelector('.video-title').textContent = item.name;
-    button.querySelector('.video-date').textContent = formatJstDateTime(item.createdTime).replace('_', ' ');
-    button.addEventListener('click', () => openModal(item.id));
-    root.appendChild(button);
-  });
-}
-
-function openModal(fileId) {
-  const modal = document.getElementById('video-modal');
-  const frame = document.getElementById('video-frame');
-  if (!modal || !frame) return;
-  frame.src = fileId.startsWith('mock')
-    ? 'about:blank'
-    : `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`;
-  modal.hidden = false;
-}
-
-function closeModal() {
-  const modal = document.getElementById('video-modal');
-  const frame = document.getElementById('video-frame');
-  if (!modal || !frame) return;
-  frame.src = 'about:blank';
-  modal.hidden = true;
-}
-
-async function loadGallery(gasUrl, isMock) {
-  if (isMock) return MOCK_ITEMS;
-  if (!gasUrl) return [];
-  const response = await fetch(`${gasUrl}?action=list`, { redirect: 'follow' });
-  const json = await readJson(response);
-  return json.items || [];
 }
 
 function initUploadPage() {
@@ -492,29 +429,6 @@ function initUploadPage() {
   });
 }
 
-function initGalleryPage() {
-  const gasUrl = (globalThis.GAS_URL || '').trim();
-  const params = new URLSearchParams(location.search);
-  const isMock = params.get('mock') === '1';
-  const gallery = document.getElementById('gallery');
-  if (!gallery) return;
-
-  loadGallery(gasUrl, isMock)
-    .then((items) => renderGallery(items, gallery))
-    .catch(() => {
-      gallery.innerHTML = '<p class="muted">動画一覧を読み込めませんでした。</p>';
-    });
-
-  const close = document.getElementById('modal-close');
-  const modal = document.getElementById('video-modal');
-  if (close) close.addEventListener('click', closeModal);
-  if (modal) {
-    modal.addEventListener('click', (event) => {
-      if (event.target.id === 'video-modal') closeModal();
-    });
-  }
-}
-
 export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName = 'browser-e2e.mp4', log = () => {} }) {
   if (!gasUrl) {
     return { ok: false, reason: 'URL未指定' };
@@ -533,11 +447,7 @@ export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName 
   const result = await uploadFileData(blob, init.sessionUri, {
     onProgress: (loaded, total) => log(`upload ${loaded}/${total}`)
   });
-  if (result.fileId) {
-    postToGas(gasUrl, { action: 'finalizeUpload', fileId: result.fileId })
-      .then(() => log('finalizeUpload OK'))
-      .catch((err) => log(`finalizeUpload failed: ${err.message || err}`));
-  } else {
+  if (!result.fileId) {
     log('fileIdなし: データ送信完了として扱います');
   }
   return { ok: result.ok, fileId: result.fileId || '' };
@@ -546,8 +456,5 @@ export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName 
 if (typeof document !== 'undefined') {
   if (document.getElementById('upload-form')) {
     initUploadPage();
-  }
-  if (document.getElementById('gallery')) {
-    initGalleryPage();
   }
 }
