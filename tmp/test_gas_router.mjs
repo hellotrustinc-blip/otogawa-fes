@@ -105,12 +105,12 @@ function parseOutput(output) {
 
 {
   const { context, sent } = makeContext();
-  const result = context.doPost({ parameter: { name: '山内', email: 'test@example.com', message: '本文です' } });
+  const result = context.doPost({ parameter: { name: '祭例太郎', email: 'test@example.com', message: '本文です' } });
   assert.equal(result.value, 'OK');
   assert.equal(sent.length, 2);
   assert.equal(sent[0].to, 'otogawa.fes@gmail.com');
   assert.equal(sent[0].subject, '【お問い合わせ】大戸川祭礼サイト');
-  assert.equal(sent[0].body, 'お名前: 山内\nメール: test@example.com\n\n【お問い合わせ内容】\n本文です');
+  assert.equal(sent[0].body, 'お名前: 祭例太郎\nメール: test@example.com\n\n【お問い合わせ内容】\n本文です');
   assert.equal(sent[0].options.name, '大戸川祭礼サイト');
   assert.equal(sent[0].options.replyTo, 'test@example.com');
   assert.equal(sent[1].to, 'test@example.com');
