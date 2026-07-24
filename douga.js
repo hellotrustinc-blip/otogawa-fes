@@ -139,6 +139,26 @@ function hideUploadAlert() {
   alert.classList.remove('done');
 }
 
+function setUploadSubmitState(button, uploading) {
+  if (!button) return;
+  if (!button.dataset.idleText) {
+    button.dataset.idleText = button.textContent;
+  }
+  button.disabled = uploading;
+  button.textContent = uploading ? 'アップロード中…' : button.dataset.idleText;
+}
+
+function showFileRequiredMessage(list) {
+  if (!list) return;
+  list.textContent = '動画を選んでください';
+}
+
+function clearCompletedUploadFormState(fileInput) {
+  if (fileInput) {
+    fileInput.value = '';
+  }
+}
+
 async function beginUploadGuard() {
   activeUploadCount += 1;
   if (activeUploadCount === 1) {
@@ -370,6 +390,8 @@ function initUploadPage() {
   const ready = document.getElementById('upload-ready');
   const waiting = document.getElementById('upload-waiting');
   const list = document.getElementById('upload-list');
+  const fileInput = document.getElementById('video-files');
+  const submitButton = document.getElementById('upload-submit');
 
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -387,8 +409,12 @@ function initUploadPage() {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const files = Array.from(document.getElementById('video-files').files || []);
+    const files = Array.from(fileInput.files || []);
     const uploaderName = document.getElementById('uploader-name').value.trim();
+    if (files.length === 0) {
+      showFileRequiredMessage(list);
+      return;
+    }
     if (isMock) {
       alert('モックモードのため、実際のアップロードは行いません。');
       return;
@@ -411,6 +437,7 @@ function initUploadPage() {
       uploadTargets.push({ file, row });
     }
     if (uploadTargets.length > 0) {
+      setUploadSubmitState(submitButton, true);
       await beginUploadGuard();
       let currentTarget = null;
       try {
@@ -424,6 +451,10 @@ function initUploadPage() {
         completedAll = false;
       } finally {
         await endUploadGuard({ completed: completedAll });
+        setUploadSubmitState(submitButton, false);
+        if (completedAll) {
+          clearCompletedUploadFormState(fileInput);
+        }
       }
     }
   });

@@ -45,6 +45,11 @@
   .btn,.retry-btn{appearance:none;border:0;border-radius:6px;background:var(--red);color:#fff;font-weight:700;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;padding:12px 16px;cursor:pointer}
   .btn{width:100%;margin-top:18px}
   .btn:hover,.retry-btn:hover{background:var(--red-d)}
+  .btn:disabled{background:#8d8178;cursor:not-allowed}
+  .consent-box{height:180px;overflow-y:auto;margin-top:16px;padding:12px;background:#fff;border:1px solid rgba(26,20,16,.18);border-radius:6px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.85rem;line-height:1.75;color:#2c241f}
+  .consent-box h3{font-size:.95rem;margin-bottom:10px;color:var(--red-d)}
+  .consent-box p{margin-top:10px}
+  .consent-note{margin-top:12px;font-size:.82rem;color:#6d625a}
   .waiting{border:1px dashed rgba(143,44,34,.5);background:#fff7ef;border-radius:8px;padding:16px;color:var(--red-d);font-weight:700}
   .upload-alert{margin-top:16px;border:2px solid var(--red);background:#fff1e8;border-radius:8px;padding:12px;color:var(--red-d);font-weight:700}
   .upload-alert.done{border-color:#2f7d4f;background:#eef8f1;color:#24613c}
@@ -98,7 +103,27 @@
           <label class="sans">動画ファイル
             <input id="video-files" type="file" accept="video/*" multiple>
           </label>
-          <button class="btn" type="submit">投稿する</button>
+          <div class="consent-box sans">
+            <h3>動画の投稿にあたって（個人情報の取り扱い・著作権）</h3>
+            <p><strong>1. 投稿できる動画</strong><br>
+ご自身が撮影した、大戸川祭礼に関する動画のみ投稿できます。第三者が撮影した動画や、他人の権利を侵害する動画は投稿しないでください。</p>
+
+            <p><strong>2. 動画の利用について（著作権）</strong><br>
+投稿された動画は、大戸川祭礼保存会が祭礼の記録・保存および保存会の活動（記録集・広報・サイト掲載等）のために、無償で利用（保管・複製・編集・上映・掲載）することがあります。動画の著作権は投稿者に残ります。</p>
+
+            <p><strong>3. 写り込みへの配慮</strong><br>
+祭礼の様子には周囲の方が写り込むことがあります。投稿の際は周囲の方への配慮をお願いします。不適切と判断した動画は、保存会の判断で削除することがあります。</p>
+
+            <p><strong>4. 個人情報の取り扱い</strong><br>
+入力されたお名前（任意）は、動画の整理および必要な場合の連絡のみに使用し、それ以外の目的で利用したり第三者に提供したりすることはありません。</p>
+
+            <p><strong>5. お問い合わせ</strong><br>
+大戸川祭礼保存会 otogawa.fes@gmail.com</p>
+
+            <p>以上に同意のうえ、アップロードしてください。</p>
+          </div>
+          <p class="consent-note sans">ボタンを押すと、上記への同意のうえ投稿されます</p>
+          <button id="upload-submit" class="btn" type="submit">個人情報の取り扱い・著作権に同意してアップロード</button>
         </div>
       </form>
       <div id="upload-list" aria-live="polite"></div>
