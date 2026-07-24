@@ -402,6 +402,7 @@ function renderGallery(items, root) {
 function openModal(fileId) {
   const modal = document.getElementById('video-modal');
   const frame = document.getElementById('video-frame');
+  if (!modal || !frame) return;
   frame.src = fileId.startsWith('mock')
     ? 'about:blank'
     : `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`;
@@ -411,6 +412,7 @@ function openModal(fileId) {
 function closeModal() {
   const modal = document.getElementById('video-modal');
   const frame = document.getElementById('video-frame');
+  if (!modal || !frame) return;
   frame.src = 'about:blank';
   modal.hidden = true;
 }
@@ -423,7 +425,7 @@ async function loadGallery(gasUrl, isMock) {
   return json.items || [];
 }
 
-function initPage() {
+function initUploadPage() {
   const gasUrl = (globalThis.GAS_URL || '').trim();
   const params = new URLSearchParams(location.search);
   const isMock = params.get('mock') === '1';
@@ -431,7 +433,6 @@ function initPage() {
   const ready = document.getElementById('upload-ready');
   const waiting = document.getElementById('upload-waiting');
   const list = document.getElementById('upload-list');
-  const gallery = document.getElementById('gallery');
 
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -442,12 +443,6 @@ function initPage() {
     ready.hidden = false;
     waiting.hidden = true;
   }
-
-  loadGallery(gasUrl, isMock)
-    .then((items) => renderGallery(items, gallery))
-    .catch(() => {
-      gallery.innerHTML = '<p class="muted">動画一覧を読み込めませんでした。</p>';
-    });
 
   if (isMock) {
     renderMockUpload(list);
@@ -494,15 +489,30 @@ function initPage() {
         await endUploadGuard({ completed: completedAll });
       }
     }
-    loadGallery(gasUrl, false)
-      .then((items) => renderGallery(items, gallery))
-      .catch((err) => console.warn('gallery reload failed', err));
   });
+}
 
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('video-modal').addEventListener('click', (event) => {
-    if (event.target.id === 'video-modal') closeModal();
-  });
+function initGalleryPage() {
+  const gasUrl = (globalThis.GAS_URL || '').trim();
+  const params = new URLSearchParams(location.search);
+  const isMock = params.get('mock') === '1';
+  const gallery = document.getElementById('gallery');
+  if (!gallery) return;
+
+  loadGallery(gasUrl, isMock)
+    .then((items) => renderGallery(items, gallery))
+    .catch(() => {
+      gallery.innerHTML = '<p class="muted">動画一覧を読み込めませんでした。</p>';
+    });
+
+  const close = document.getElementById('modal-close');
+  const modal = document.getElementById('video-modal');
+  if (close) close.addEventListener('click', closeModal);
+  if (modal) {
+    modal.addEventListener('click', (event) => {
+      if (event.target.id === 'video-modal') closeModal();
+    });
+  }
 }
 
 export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName = 'browser-e2e.mp4', log = () => {} }) {
@@ -533,6 +543,11 @@ export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName 
   return { ok: result.ok, fileId: result.fileId || '' };
 }
 
-if (typeof document !== 'undefined' && document.getElementById('upload-form')) {
-  initPage();
+if (typeof document !== 'undefined') {
+  if (document.getElementById('upload-form')) {
+    initUploadPage();
+  }
+  if (document.getElementById('gallery')) {
+    initGalleryPage();
+  }
 }

@@ -92,9 +92,23 @@ assert.deepEqual(retryEvents, [
 ]);
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');
+const galleryHtml = await readFile(new URL('../gallery.html', import.meta.url), 'utf8');
+const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 assert.match(html, /mock=1/);
 assert.match(`${html}\n${source}`, /アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください/);
 assert.match(source, /MOCK_ITEMS[\s\S]*mock006/);
+assert.doesNotMatch(html, /id="gallery"|id="video-modal"|action=list/);
+assert.match(html, /href="gallery\.html"/);
+assert.match(galleryHtml, /id="gallery"/);
+assert.match(galleryHtml, /id="video-modal"/);
+assert.match(galleryHtml, /\?mock=1|mock=1/);
+assert.doesNotMatch(galleryHtml, /id="upload-form"|id="video-files"|動画ファイル/);
+assert.match(galleryHtml, /href="douga\.html"/);
+assert.match(indexHtml, /href="gallery\.html">みんなの動画/);
+assert.equal(
+  html.match(/const GAS_URL = '([^']+)'/)[1],
+  galleryHtml.match(/const GAS_URL = '([^']+)'/)[1]
+);
 
 const browserHarness = await readFile(new URL('./browser_e2e.html', import.meta.url), 'utf8');
 assert.match(browserHarness, /type="module"/);
