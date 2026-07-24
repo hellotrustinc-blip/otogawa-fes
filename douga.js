@@ -139,6 +139,24 @@ function hideUploadAlert() {
   alert.classList.remove('done');
 }
 
+function getUploadPreparingMessage() {
+  if (typeof document === 'undefined') return null;
+  return document.getElementById('upload-preparing');
+}
+
+function showPreparingUploadMessage() {
+  const message = getUploadPreparingMessage();
+  if (!message) return;
+  message.textContent = 'アップロード準備中…（数秒かかります）';
+  message.hidden = false;
+}
+
+function hidePreparingUploadMessage() {
+  const message = getUploadPreparingMessage();
+  if (!message) return;
+  message.hidden = true;
+}
+
 function setUploadSubmitState(button, uploading) {
   if (!button) return;
   if (!button.dataset.idleText) {
@@ -157,6 +175,18 @@ function clearCompletedUploadFormState(fileInput) {
   if (fileInput) {
     fileInput.value = '';
   }
+}
+
+function getSelectedFilesText(files) {
+  const selected = Array.from(files || []);
+  if (selected.length === 0) return 'まだ選ばれていません';
+  if (selected.length === 1) return `選択中: ${selected[0].name}`;
+  return `選択中: ${selected.length}本の動画を選択中`;
+}
+
+function updateSelectedFilesStatus(status, files) {
+  if (!status) return;
+  status.textContent = getSelectedFilesText(files);
 }
 
 async function beginUploadGuard() {
@@ -318,6 +348,7 @@ async function uploadVideo(file, uploaderName, ui, gasUrl) {
 
   const result = await uploadFileData(file, init.sessionUri, {
     onProgress: (loaded, total) => {
+      hidePreparingUploadMessage();
       ui.update(Math.round((loaded / total) * 100), 'アップロード中', loaded, total);
     },
     onRetryNeeded: (err, retry) => {
@@ -392,8 +423,17 @@ function initUploadPage() {
   const list = document.getElementById('upload-list');
   const fileInput = document.getElementById('video-files');
   const submitButton = document.getElementById('upload-submit');
+  const filePickerButton = document.getElementById('file-picker-button');
+  const fileSelectionStatus = document.getElementById('file-selection-status');
 
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  if (filePickerButton && fileInput) {
+    filePickerButton.addEventListener('click', () => fileInput.click());
+  }
+  if (fileInput) {
+    fileInput.addEventListener('change', () => updateSelectedFilesStatus(fileSelectionStatus, fileInput.files));
+    updateSelectedFilesStatus(fileSelectionStatus, fileInput.files);
+  }
 
   if (!gasUrl && !isMock) {
     ready.hidden = true;
@@ -404,6 +444,7 @@ function initUploadPage() {
   }
 
   if (isMock) {
+    updateSelectedFilesStatus(fileSelectionStatus, [{ name: '検収用ダミー動画.mp4' }]);
     renderMockUpload(list);
   }
 
@@ -419,6 +460,8 @@ function initUploadPage() {
       alert('モックモードのため、実際のアップロードは行いません。');
       return;
     }
+    setUploadSubmitState(submitButton, true);
+    showPreparingUploadMessage();
     const uploadTargets = [];
     let completedAll = files.length > 0;
     for (const file of files) {
@@ -437,7 +480,6 @@ function initUploadPage() {
       uploadTargets.push({ file, row });
     }
     if (uploadTargets.length > 0) {
-      setUploadSubmitState(submitButton, true);
       await beginUploadGuard();
       let currentTarget = null;
       try {
@@ -451,11 +493,16 @@ function initUploadPage() {
         completedAll = false;
       } finally {
         await endUploadGuard({ completed: completedAll });
+        hidePreparingUploadMessage();
         setUploadSubmitState(submitButton, false);
         if (completedAll) {
           clearCompletedUploadFormState(fileInput);
+          updateSelectedFilesStatus(fileSelectionStatus, fileInput.files);
         }
       }
+    } else {
+      hidePreparingUploadMessage();
+      setUploadSubmitState(submitButton, false);
     }
   });
 }

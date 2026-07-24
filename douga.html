@@ -40,8 +40,15 @@
   h2{font-size:1.35rem;letter-spacing:.08em;color:var(--red-d);margin-bottom:12px}
   .note{font-size:.92rem;color:#4f4138}
   .rules{margin:16px 0 0 1.2em;font-size:.9rem;color:#4f4138}
-  label{display:block;margin-top:16px;font-weight:700}
-  input[type="text"],input[type="file"]{width:100%;margin-top:8px;padding:12px;border:1px solid rgba(26,20,16,.18);border-radius:6px;background:#fff;font:inherit}
+  label{display:block;font-weight:700}
+  input[type="text"]{width:100%;margin-top:8px;padding:12px;border:1px solid rgba(26,20,16,.18);border-radius:6px;background:#fff;font:inherit}
+  .visually-hidden-file{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .step{margin-top:18px;padding-top:2px}
+  .step-title{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;color:var(--red-d)}
+  .step-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:30px;height:30px;border-radius:999px;background:var(--red);color:#fff;font-size:.95rem;line-height:1}
+  .file-picker-btn{appearance:none;border:0;border-radius:6px;background:var(--red);color:#fff;font-weight:700;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;padding:14px 18px;min-height:52px;cursor:pointer}
+  .file-picker-btn:hover{background:var(--red-d)}
+  .file-status{margin-top:8px;font-size:.9rem;color:#4f4138}
   .btn,.retry-btn{appearance:none;border:0;border-radius:6px;background:var(--red);color:#fff;font-weight:700;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;padding:12px 16px;cursor:pointer}
   .btn{width:100%;margin-top:18px}
   .btn:hover,.retry-btn:hover{background:var(--red-d)}
@@ -50,6 +57,7 @@
   .consent-box h3{font-size:.95rem;margin-bottom:10px;color:var(--red-d)}
   .consent-box p{margin-top:10px}
   .consent-note{margin-top:12px;font-size:.82rem;color:#6d625a}
+  .preparing-message{margin-top:8px;font-size:.9rem;color:var(--red-d);font-weight:700}
   .waiting{border:1px dashed rgba(143,44,34,.5);background:#fff7ef;border-radius:8px;padding:16px;color:var(--red-d);font-weight:700}
   .upload-alert{margin-top:16px;border:2px solid var(--red);background:#fff1e8;border-radius:8px;padding:12px;color:var(--red-d);font-weight:700}
   .upload-alert.done{border-color:#2f7d4f;background:#eef8f1;color:#24613c}
@@ -94,17 +102,25 @@
         <li>周囲の方に配慮した動画をお寄せください。</li>
       </ul>
       <div id="upload-waiting" class="waiting">動画投稿は準備中です。</div>
-      <div id="upload-alert" class="upload-alert sans" hidden>⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください</div>
       <form id="upload-form">
         <div id="upload-ready">
-          <label class="sans">お名前
-            <input id="uploader-name" type="text" maxlength="40" placeholder="省略可">
-          </label>
-          <label class="sans">動画ファイル
-            <input id="video-files" type="file" accept="video/*" multiple>
-          </label>
-          <div class="consent-box sans">
-            <h3>動画の投稿にあたって（個人情報の取り扱い・著作権）</h3>
+          <div class="step">
+            <div class="step-title"><span class="step-badge">1</span><span>手順1. お名前を入力（ニックネーム可・省略可）</span></div>
+            <label class="sans">お名前
+              <input id="uploader-name" type="text" maxlength="40" placeholder="省略可">
+            </label>
+          </div>
+          <div class="step">
+            <div class="step-title"><span class="step-badge">2</span><span>手順2. 「ファイルを選ぶ」を押して動画を選ぶ（複数可）</span></div>
+            <input id="video-files" class="visually-hidden-file" type="file" accept="video/*" multiple>
+            <button id="file-picker-button" class="file-picker-btn" type="button" aria-controls="video-files">📁 ファイルを選ぶ</button>
+            <p class="note sans">ボタンを押すとスマホの動画一覧が開きます</p>
+            <p id="file-selection-status" class="file-status sans" aria-live="polite">まだ選ばれていません</p>
+          </div>
+          <div class="step">
+            <div class="step-title"><span class="step-badge">3</span><span>手順3. 下の規約を確認</span></div>
+            <div class="consent-box sans">
+              <h3>動画の投稿にあたって（個人情報の取り扱い・著作権）</h3>
             <p><strong>1. 投稿できる動画</strong><br>
 ご自身が撮影した、大戸川祭礼に関する動画のみ投稿できます。第三者が撮影した動画や、他人の権利を侵害する動画は投稿しないでください。</p>
 
@@ -121,12 +137,18 @@
 大戸川祭礼保存会 otogawa.fes@gmail.com</p>
 
             <p>以上に同意のうえ、アップロードしてください。</p>
+            </div>
           </div>
-          <p class="consent-note sans">ボタンを押すと、上記への同意のうえ投稿されます</p>
-          <button id="upload-submit" class="btn" type="submit">個人情報の取り扱い・著作権に同意してアップロード</button>
+          <div class="step">
+            <div class="step-title"><span class="step-badge">4</span><span>手順4. 「同意してアップロード」を押す</span></div>
+            <p class="consent-note sans">ボタンを押すと、上記への同意のうえ投稿されます</p>
+            <button id="upload-submit" class="btn" type="submit">個人情報の取り扱い・著作権に同意してアップロード</button>
+            <p id="upload-preparing" class="preparing-message sans" hidden>アップロード準備中…（数秒かかります）</p>
+          </div>
         </div>
       </form>
       <div id="upload-list" aria-live="polite"></div>
+      <div id="upload-alert" class="upload-alert sans" hidden>⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください</div>
     </section>
   </div>
 </main>
