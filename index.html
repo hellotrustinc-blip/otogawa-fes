@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大戸川祭礼｜千葉県香取市 大戸川</title>
+<meta name="description" content="千葉県香取市大戸川に伝わる伝統の祭礼「大戸川祭礼」。神輿と太鼓、浴衣で町内を巡り、天王様に豊作を祈願します。">
+<style>
+  :root{
+    --ink:#1a1410;
+    --paper:#f7f1e6;
+    --paper2:#efe6d4;
+    --red:#b23a2e;      /* 祭りの朱 */
+    --red-d:#8f2c22;
+    --gold:#c99a2e;
+    --navy:#243b53;
+    --shadow:0 8px 30px rgba(26,20,16,.12);
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.9;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sans{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* ---- nav ---- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,241,230,.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid rgba(26,20,16,.08);
+  }
+  nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{font-weight:700;letter-spacing:.15em;color:var(--red-d);font-size:1.05rem}
+  .menu{display:flex;gap:22px;list-style:none}
+  .menu a{color:var(--ink);text-decoration:none;font-size:.9rem;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .menu a:hover{color:var(--red)}
+  .burger{display:none;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--red-d)}
+  @media(max-width:720px){
+    .menu{position:absolute;top:60px;left:0;right:0;flex-direction:column;background:var(--paper);
+      padding:12px 24px;gap:14px;box-shadow:var(--shadow);transform:translateY(-140%);transition:.3s;}
+    .menu.open{transform:translateY(0)}
+    .burger{display:block}
+  }
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative;min-height:82vh;display:flex;align-items:center;justify-content:center;
+    text-align:center;color:#fff;overflow:hidden;
+    background:linear-gradient(160deg,#8f2c22,#5e1a14 70%);
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;opacity:.14;
+    background-image:radial-gradient(circle at 20% 30%,#fff 2px,transparent 2px),
+                     radial-gradient(circle at 70% 60%,#fff 2px,transparent 2px);
+    background-size:60px 60px;
+  }
+  .hero-in{position:relative;z-index:2;padding:0 24px}
+  .hero .sub{font-size:.95rem;letter-spacing:.35em;opacity:.9;margin-bottom:18px}
+  .hero h1{font-size:clamp(2.6rem,8vw,5rem);letter-spacing:.1em;line-height:1.2;
+    text-shadow:0 4px 20px rgba(0,0,0,.35)}
+  .hero .lead{margin-top:22px;font-size:clamp(1rem,2.6vw,1.25rem);opacity:.95}
+  .hero .badge{display:inline-block;margin-top:28px;background:var(--gold);color:#3a2a08;
+    padding:10px 22px;border-radius:999px;font-weight:700;letter-spacing:.08em;font-size:.95rem;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+
+  /* ---- sections ---- */
+  section{padding:80px 0}
+  .sec-head{text-align:center;margin-bottom:46px}
+  .sec-head .en{display:block;color:var(--red);letter-spacing:.3em;font-size:.8rem;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;margin-bottom:8px}
+  .sec-head h2{font-size:clamp(1.7rem,4vw,2.3rem);letter-spacing:.08em;position:relative;display:inline-block;padding-bottom:12px}
+  .sec-head h2::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+    width:48px;height:3px;background:var(--gold)}
+  .alt{background:var(--paper2)}
+
+  .lead-txt{max-width:760px;margin:0 auto;font-size:1.08rem}
+
+  /* 見どころ cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;margin-top:12px}
+  .card{background:#fff;border-radius:14px;padding:30px 26px;box-shadow:var(--shadow);border-top:4px solid var(--red)}
+  .card .ico{font-size:2rem;margin-bottom:12px}
+  .card h3{font-size:1.2rem;margin-bottom:10px;letter-spacing:.05em}
+  .card p{font-size:.97rem}
+
+  /* timeline 由緒/日程 */
+  .timeline{max-width:760px;margin:0 auto;position:relative;padding-left:34px}
+  .timeline::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--gold)}
+  .tl{position:relative;margin-bottom:34px}
+  .tl::before{content:"";position:absolute;left:-30px;top:6px;width:16px;height:16px;border-radius:50%;
+    background:var(--red);border:3px solid var(--paper)}
+  .tl .day{color:var(--red-d);font-weight:700;letter-spacing:.05em;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .tl h3{font-size:1.15rem;margin:2px 0 6px}
+
+  /* info table */
+  .info{max-width:640px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .info div{display:flex;border-bottom:1px solid var(--paper2)}
+  .info div:last-child{border-bottom:none}
+  .info dt{flex:0 0 130px;background:var(--navy);color:#fff;padding:16px 18px;font-size:.92rem;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;letter-spacing:.05em}
+  .info dd{padding:16px 18px;flex:1}
+
+  /* CTA / form */
+  .cta{background:linear-gradient(160deg,#243b53,#16283a);color:#fff;text-align:center}
+  .cta h2{color:#fff}
+  .cta .sec-head h2::after{background:var(--gold)}
+  .btn{display:inline-block;margin-top:10px;background:var(--gold);color:#2a1e05;
+    padding:16px 40px;border-radius:999px;text-decoration:none;font-weight:700;letter-spacing:.06em;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;box-shadow:var(--shadow);transition:.2s}
+  .btn:hover{transform:translateY(-2px)}
+  button.btn{border:none;cursor:pointer;font-size:1rem}
+
+  /* contact form */
+  .cform{max-width:520px;margin:30px auto 0;text-align:left;display:flex;flex-direction:column;gap:18px}
+  .cform label{display:flex;flex-direction:column;gap:6px;color:#e8dfd0;font-size:.9rem;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;letter-spacing:.05em}
+  .cform input,.cform textarea{
+    background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.4);border-radius:8px;
+    padding:12px 14px;font-size:1rem;font-family:inherit;color:var(--ink);width:100%;resize:vertical}
+  .cform input:focus,.cform textarea:focus{outline:2px solid var(--gold)}
+  .cform button{align-self:center;margin-top:6px}
+  .cf-done{max-width:520px;margin:24px auto 0;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:26px 24px;color:#e8dfd0}
+  .cf-done-t{font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:12px;letter-spacing:.05em}
+  .cf-note{margin-top:14px;font-size:.85rem;color:#c7bca9;line-height:1.8}
+  .cf-note strong{color:var(--gold)}
+
+  /* 消滅危機 note */
+  .keep{background:var(--red-d);color:#fff;text-align:center;padding:56px 0}
+  .keep p{max-width:720px;margin:0 auto;font-size:1.12rem}
+  .keep .big{font-size:1.5rem;font-weight:700;letter-spacing:.08em;margin-bottom:14px;display:block}
+
+  /* placeholder note */
+  .todo{background:#fff8e1;border:1px dashed var(--gold);color:#7a5b00;border-radius:8px;
+    padding:4px 10px;font-size:.82rem;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    display:inline-block;margin-top:4px}
+
+  footer{background:var(--ink);color:#cdbfae;text-align:center;padding:40px 0;font-size:.88rem;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <span class="brand">大戸川祭礼</span>
+    <button class="burger" aria-label="メニュー" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
+    <ul class="menu" id="menu">
+      <li><a href="#about">祭りについて</a></li>
+      <li><a href="#history">由緒</a></li>
+      <li><a href="#highlight">見どころ</a></li>
+      <li><a href="#schedule">日程</a></li>
+      <li><a href="#access">アクセス</a></li>
+      <li><a href="#contact">お問い合わせ</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-in">
+    <p class="sub sans">千葉県香取市 大戸川</p>
+    <h1>大戸川祭礼</h1>
+    <p class="lead">神輿と太鼓、浴衣に身を包み、天王様（八坂神社）へ豊作を祈願する<br>大戸川に受け継がれる伝統の祭り</p>
+    <span class="badge">2026年 7月24日 宵祭 ／ 7月25日 本祭</span>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">ABOUT</span><h2>大戸川祭礼とは</h2></div>
+    <p class="lead-txt">
+      千葉県香取市大戸川に古くから伝わる、伝統的で勇壮な祭礼です。
+      八坂神社（天王様）を出発点・帰着点とし、神輿と太鼓を担ぎながら町内を練り歩きます。
+      担ぎ手が浴衣を身にまとうのが特徴で、豊作を祈願する地域の大切な行事として受け継がれてきました。
+    </p>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section id="history" class="alt">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">HISTORY</span><h2>祭礼の由緒</h2></div>
+    <div class="timeline">
+      <div class="tl">
+        <span class="day sans">7月24日（金）</span>
+        <h3>宵祭（よいまつり）</h3>
+        <p>八坂神社（天王様）より祭りが始まります。<span class="todo">【要確認】宵祭の具体的な神事・時間・見どころを記載</span></p>
+      </div>
+      <div class="tl">
+        <span class="day sans">7月25日（土）</span>
+        <h3>本祭（ほんまつり）</h3>
+        <p>神輿と太鼓が町内を巡行し、八坂神社へ帰着して祭礼を締めくくります。<span class="todo">【要確認】本祭の巡行ルート・時間などを記載</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HIGHLIGHT -->
+<section id="highlight">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">HIGHLIGHTS</span><h2>見どころ</h2></div>
+    <div class="cards">
+      <div class="card"><div class="ico">⛩️</div><h3>天王様の神輿</h3><p>祭りの起点となる神社「天王様」から担ぎ出される神輿。勇壮な担ぎ手の姿は必見です。</p></div>
+      <div class="card"><div class="ico">🥁</div><h3>響き渡る太鼓</h3><p>町内に響く太鼓の音が祭りを盛り上げます。神輿とともに大戸川を巡ります。</p></div>
+      <div class="card"><div class="ico">👘</div><h3>浴衣の担ぎ手</h3><p>担ぎ手が浴衣を着るのは全国でも珍しい風習。大戸川ならではの光景です。</p></div>
+      <div class="card"><div class="ico">🌾</div><h3>豊作祈願</h3><p>地域の実りと安寧を願う、暮らしに根ざした祈りの祭礼です。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEDULE / INFO -->
+<section id="schedule" class="alt">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">SCHEDULE</span><h2>開催概要</h2></div>
+    <dl class="info">
+      <div><dt>開催日</dt><dd>2026年7月24日（金）宵祭 ／ 7月25日（土）本祭</dd></div>
+      <div><dt>時間</dt><dd><span class="todo">【要確認】各日の開始〜終了時刻</span></dd></div>
+      <div><dt>場所</dt><dd>八坂神社（〒287-0054 千葉県香取市大戸川164）出発・帰着</dd></div>
+      <div><dt>主催</dt><dd>大戸川組合</dd></div>
+      <div><dt>お問い合わせ</dt><dd>下記お問い合わせフォームより</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ACCESS -->
+<section id="access">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">ACCESS</span><h2>アクセス</h2></div>
+    <dl class="info" style="margin-bottom:28px">
+      <div><dt>会場</dt><dd>八坂神社（天王様）周辺 一帯</dd></div>
+      <div><dt>住所</dt><dd>〒287-0054 千葉県香取市大戸川164</dd></div>
+      <div><dt>電車</dt><dd>JR成田線「大戸（おおと）駅」下車 <span class="todo">【要確認】駅からの徒歩分数・タクシー等</span></dd></div>
+      <div><dt>駐車場</dt><dd><span class="todo">【要確認】駐車場の有無・台数</span></dd></div>
+    </dl>
+    <div style="max-width:760px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+      <iframe title="八坂神社 地図" width="100%" height="360" style="border:0" loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        src="https://maps.google.com/maps?q=%E5%8D%83%E8%91%89%E7%9C%8C%E9%A6%99%E5%8F%96%E5%B8%82%E5%A4%A7%E6%88%B8%E5%B7%9D164%20%E5%85%AB%E5%9D%82%E7%A5%9E%E7%A4%BE&output=embed"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- 継承メッセージ -->
+<div class="keep">
+  <div class="wrap">
+    <span class="big">この祭りを、次の世代へ。</span>
+    <p>少子高齢化により、大戸川祭礼は存続の危機を迎えています。<br>
+       地域の伝統を絶やさぬよう、皆さまのご参加とご協力をお願いいたします。</p>
+  </div>
+</div>
+
+<!-- CONTACT / FORM -->
+<section id="contact" class="cta">
+  <div class="wrap">
+    <div class="sec-head"><span class="en sans">CONTACT</span><h2>お問い合わせ</h2></div>
+    <p class="lead-txt" style="color:#e8dfd0">
+      祭礼に関するご質問・ご連絡は、以下のフォームよりお願いいたします。
+    </p>
+    <!-- action の __GAS_URL__ を、設置したGoogle Apps ScriptのウェブアプリURL(/exec)に差し替えてください -->
+    <form id="cform" class="cform" method="POST" action="__GAS_URL__" target="cf_iframe" onsubmit="return onContactSubmit()">
+      <label>お名前<input type="text" name="name" required></label>
+      <label>メールアドレス<input type="email" name="email" required></label>
+      <label>お問い合わせ内容<textarea name="message" rows="5" required></textarea></label>
+      <button type="submit" class="btn">送信する</button>
+    </form>
+    <iframe name="cf_iframe" style="display:none"></iframe>
+    <div id="cf_done" class="cf-done" hidden>
+      <p class="cf-done-t">送信しました。ありがとうございます。</p>
+      <p>ご入力いただいたメールアドレス宛に、受付確認の自動返信をお送りしました。<br>
+         担当者より数日以内に、改めてご返信いたします。</p>
+      <p class="cf-note">※ 数日経っても返信・自動返信メールが届かない場合、正しく送信できていないか、
+         メールが<strong>迷惑メールフォルダ</strong>に振り分けられている可能性があります。
+         お手数ですが迷惑メールフォルダをご確認のうえ、再度お問い合わせください。</p>
+    </div>
+    <p style="margin-top:16px;font-size:.85rem;color:#c7bca9"><span class="todo">【要設定】上のフォームの送信先URL（Google Apps Script）を設定すると有効になります</span></p>
+  </div>
+</section>
+
+<footer>
+  <p>大戸川祭礼保存会 ｜ 千葉県香取市大戸川</p>
+  <p style="margin-top:6px">主催：大戸川組合</p>
+  <p style="margin-top:8px;opacity:.7">© <span id="yr"></span> 大戸川祭礼保存会</p>
+</footer>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  // メニュー内リンクを押したら閉じる（スマホ）
+  document.querySelectorAll('.menu a').forEach(function(a){
+    a.addEventListener('click',function(){document.getElementById('menu').classList.remove('open')});
+  });
+  // お問い合わせ：hidden iframe へ送信（受け皿=Google Apps Script）し、送信完了パネルを表示
+  function onContactSubmit(){
+    var f=document.getElementById('cform');
+    if(f.getAttribute('action').indexOf('__GAS_URL__')!==-1){
+      alert('送信先(URL)が未設定です。設置手順に従いフォームの送信先を設定してください。');
+      return false; // 未設定なら送信しない
+    }
+    setTimeout(function(){
+      f.hidden=true;
+      document.getElementById('cf_done').hidden=false;
+    },300);
+    return true; // 実際の送信は継続（iframe宛）
+  }
+</script>
+</body>
+</html>
