@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんなの動画｜大戸川祭礼</title>
+<meta name="description" content="大戸川祭礼の動画投稿とギャラリー。Googleアカウント不要で、スマホのブラウザから動画を投稿できます。">
+<style>
+  :root{
+    --ink:#1a1410;
+    --paper:#f7f1e6;
+    --paper2:#efe6d4;
+    --red:#b23a2e;
+    --red-d:#8f2c22;
+    --gold:#c99a2e;
+    --navy:#243b53;
+    --shadow:0 8px 30px rgba(26,20,16,.12);
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.85;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sans{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 16px}
+  header{position:sticky;top:0;z-index:20;background:rgba(247,241,230,.94);backdrop-filter:blur(6px);border-bottom:1px solid rgba(26,20,16,.08)}
+  nav{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{font-weight:700;letter-spacing:.12em;color:var(--red-d);text-decoration:none}
+  .home{color:var(--ink);text-decoration:none;font-size:.9rem;text-align:right}
+  .hero{padding:48px 0 28px;background:linear-gradient(160deg,#8f2c22,#6b2019)}
+  .hero h1{color:#fff;font-size:clamp(2rem,9vw,3.8rem);line-height:1.25;letter-spacing:.08em;text-shadow:0 4px 18px rgba(0,0,0,.25)}
+  .hero p{margin-top:14px;color:#f7f1e6;font-size:1rem}
+  main{padding:32px 0 64px}
+  .grid{display:grid;gap:28px;grid-template-columns:minmax(0,1fr);min-width:0}
+  @media(min-width:860px){.grid{grid-template-columns:380px minmax(0,1fr);align-items:start}}
+  .panel{min-width:0;background:rgba(255,255,255,.45);border:1px solid rgba(26,20,16,.1);border-radius:8px;padding:20px;box-shadow:var(--shadow)}
+  h2{font-size:1.35rem;letter-spacing:.08em;color:var(--red-d);margin-bottom:12px}
+  .note{font-size:.92rem;color:#4f4138}
+  .rules{margin:16px 0 0 1.2em;font-size:.9rem;color:#4f4138}
+  label{display:block;margin-top:16px;font-weight:700}
+  input[type="text"],input[type="file"]{width:100%;margin-top:8px;padding:12px;border:1px solid rgba(26,20,16,.18);border-radius:6px;background:#fff;font:inherit}
+  .btn,.retry-btn{appearance:none;border:0;border-radius:6px;background:var(--red);color:#fff;font-weight:700;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;padding:12px 16px;cursor:pointer}
+  .btn{width:100%;margin-top:18px}
+  .btn:hover,.retry-btn:hover{background:var(--red-d)}
+  .waiting{border:1px dashed rgba(143,44,34,.5);background:#fff7ef;border-radius:8px;padding:16px;color:var(--red-d);font-weight:700}
+  .upload-row{margin-top:14px;padding:12px;border:1px solid rgba(26,20,16,.12);border-radius:8px;background:#fff}
+  .upload-meta{display:flex;gap:10px;justify-content:space-between;font-size:.85rem}
+  .upload-name{overflow-wrap:anywhere}
+  .upload-status{white-space:nowrap;color:var(--navy)}
+  .progress{height:8px;background:var(--paper2);border-radius:999px;overflow:hidden;margin-top:8px}
+  .progress span{display:block;width:0;height:100%;background:var(--gold);transition:width .2s}
+  .retry-btn{margin-top:10px;padding:8px 12px;font-size:.85rem}
+  .gallery-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:14px;min-width:0}
+  .gallery-grid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+  @media(min-width:420px){.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(min-width:680px){.gallery-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .video-card{border:0;background:#fff;border-radius:8px;overflow:hidden;text-align:left;box-shadow:var(--shadow);cursor:pointer;color:var(--ink)}
+  .video-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--paper2)}
+  .video-title,.video-date{display:block;padding:0 10px;overflow-wrap:anywhere}
+  .video-title{padding-top:10px;font-weight:700;line-height:1.45}
+  .video-date{padding-bottom:10px;color:#6d625a;font-size:.78rem;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .muted{color:#6d625a}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:grid;place-items:center;padding:18px}
+  .modal[hidden]{display:none}
+  .modal-inner{width:min(960px,100%);background:#000;border-radius:8px;overflow:hidden;position:relative}
+  .modal-close{position:absolute;right:8px;top:8px;z-index:2;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.9);font-size:1.5rem;cursor:pointer}
+  iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+</style>
+<script>
+  const GAS_URL = '';
+  window.GAS_URL = GAS_URL;
+</script>
+</head>
+<body>
+<header>
+  <nav class="wrap">
+    <a class="brand" href="index.html">大戸川祭礼</a>
+    <a class="home sans" href="index.html">祭礼サイトへ戻る</a>
+  </nav>
+</header>
+<section class="hero">
+  <div class="wrap">
+    <h1>みんなの動画</h1>
+    <p class="sans">Googleアカウント不要。スマホのブラウザから、祭礼の動画を投稿できます。</p>
+  </div>
+</section>
+<main class="wrap">
+  <div class="grid">
+    <section class="panel">
+      <h2>動画を投稿する</h2>
+      <p class="note">投稿できるのは動画のみ、1本4GBまでです。お名前はニックネームでも、省略でもかまいません。</p>
+      <!-- 検収用: douga.html?mock=1 でGAS未接続のモック表示 -->
+      <ul class="rules">
+        <li>祭礼と無関係な動画は削除します。</li>
+        <li>周囲の方に配慮した動画をお寄せください。</li>
+      </ul>
+      <div id="upload-waiting" class="waiting">動画投稿は準備中です。</div>
+      <form id="upload-form">
+        <div id="upload-ready">
+          <label class="sans">お名前
+            <input id="uploader-name" type="text" maxlength="40" placeholder="省略可">
+          </label>
+          <label class="sans">動画ファイル
+            <input id="video-files" type="file" accept="video/*" multiple>
+          </label>
+          <button class="btn" type="submit">投稿する</button>
+        </div>
+      </form>
+      <div id="upload-list" aria-live="polite"></div>
+    </section>
+    <section>
+      <div class="gallery-head">
+        <h2>投稿動画</h2>
+        <p class="muted sans">新しい順</p>
+      </div>
+      <div id="gallery" class="gallery-grid" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+<div id="video-modal" class="modal" hidden>
+  <div class="modal-inner">
+    <button id="modal-close" class="modal-close" type="button" aria-label="閉じる">×</button>
+    <iframe id="video-frame" src="about:blank" allowfullscreen></iframe>
+  </div>
+</div>
+<script type="module" src="./douga.js"></script>
+</body>
+</html>
