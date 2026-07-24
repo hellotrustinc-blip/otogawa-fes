@@ -184,6 +184,11 @@ function postToGas(gasUrl, payload) {
   }).then(readJson);
 }
 
+export function getUploadOrigin() {
+  if (typeof location === 'undefined' || !location.origin) return '';
+  return location.origin;
+}
+
 function readJson(response) {
   return response.text().then((text) => {
     let json;
@@ -197,6 +202,18 @@ function readJson(response) {
     }
     return json;
   });
+}
+
+export async function readCompletedUploadId(response) {
+  if (!response || (response.status !== 200 && response.status !== 201)) {
+    return { complete: false, fileId: '' };
+  }
+  try {
+    const body = await response.json();
+    return { complete: true, fileId: body && body.id ? String(body.id) : '' };
+  } catch (err) {
+    return { complete: true, fileId: '' };
+  }
 }
 
 async function queryUploadPosition(sessionUri, totalBytes) {
@@ -222,55 +239,90 @@ async function putChunk(sessionUri, file, bounds) {
   });
 }
 
+export async function uploadFileData(file, sessionUri, options = {}) {
+  const fetchImpl = options.fetchImpl || fetch;
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
+  const onRetryNeeded = typeof options.onRetryNeeded === 'function' ? options.onRetryNeeded : null;
+  const queryPosition = options.queryPosition || queryUploadPosition;
+  let start = Number(options.start || 0);
+  let retries = 0;
+  let finalId = '';
+
+  const run = async () => {
+    while (start < file.size) {
+      const bounds = getChunkBounds(file.size, start);
+      try {
+        const blob = file.slice(bounds.start, bounds.end + 1);
+        const response = await fetchImpl(sessionUri, {
+          method: 'PUT',
+          headers: { 'Content-Range': buildContentRange(bounds.start, bounds.end, bounds.total) },
+          body: blob
+        });
+        if (response.status === 308) {
+          start = nextStartFrom308(response.headers.get('Range')) || bounds.end + 1;
+        } else if (response.status === 200 || response.status === 201) {
+          const done = await readCompletedUploadId(response);
+          finalId = done.fileId || '';
+          start = file.size;
+        } else {
+          throw new Error(`アップロードに失敗しました（${response.status}）。`);
+        }
+        retries = 0;
+        onProgress(start, file.size);
+      } catch (err) {
+        retries += 1;
+        if (retries > 3) {
+          if (onRetryNeeded) {
+            onRetryNeeded(err, async () => {
+              start = await queryPosition(sessionUri, file.size);
+              retries = 0;
+              return run();
+            });
+            return { ok: false, fileId: finalId };
+          }
+          throw err;
+        }
+        try {
+          start = await queryPosition(sessionUri, file.size);
+        } catch (probeErr) {
+          start = bounds.start;
+        }
+      }
+    }
+    return { ok: true, fileId: finalId };
+  };
+
+  return run();
+}
+
 async function uploadVideo(file, uploaderName, ui, gasUrl) {
   const init = await postToGas(gasUrl, {
     action: 'initUpload',
     fileName: sanitizeFileName(file.name),
     mimeType: file.type || 'video/mp4',
     fileSize: file.size,
-    uploaderName
+    uploaderName,
+    origin: getUploadOrigin()
   });
 
-  let start = 0;
-  let retries = 0;
-  let finalId = '';
-  const run = async () => {
-  while (start < file.size) {
-    const bounds = getChunkBounds(file.size, start);
-    try {
-      const response = await putChunk(init.sessionUri, file, bounds);
-      if (response.status === 308) {
-        start = nextStartFrom308(response.headers.get('Range')) || bounds.end + 1;
-      } else if (response.status === 200 || response.status === 201) {
-        const done = await response.json().catch(() => ({}));
-        finalId = done.id || '';
-        start = file.size;
-      } else {
-        throw new Error(`アップロードに失敗しました（${response.status}）。`);
-      }
-      retries = 0;
-      ui.update(Math.round((start / file.size) * 100), 'アップロード中', start, file.size);
-    } catch (err) {
-      retries += 1;
-      if (retries > 3) {
-        ui.fail('通信が途切れました。「再開」を押してください。', async () => {
-          start = await queryUploadPosition(init.sessionUri, file.size);
-          retries = 0;
-          return run();
-        });
-        return false;
-      }
-      start = await queryUploadPosition(init.sessionUri, file.size);
+  const result = await uploadFileData(file, init.sessionUri, {
+    onProgress: (loaded, total) => {
+      ui.update(Math.round((loaded / total) * 100), 'アップロード中', loaded, total);
+    },
+    onRetryNeeded: (err, retry) => {
+      ui.fail('通信が途切れました。「再開」を押してください。', retry);
     }
-  }
+  });
 
-  if (finalId) {
-    await postToGas(gasUrl, { action: 'finalizeUpload', fileId: finalId });
-  }
+  if (!result.ok) return false;
   ui.update(100, '完了しました', file.size, file.size);
+
+  if (result.fileId) {
+    postToGas(gasUrl, { action: 'finalizeUpload', fileId: result.fileId }).catch((err) => {
+      console.warn('finalizeUpload failed', err);
+    });
+  }
   return true;
-  };
-  return run();
 }
 
 function createUploadRow(file) {
@@ -442,8 +494,9 @@ function initPage() {
         await endUploadGuard({ completed: completedAll });
       }
     }
-    const items = await loadGallery(gasUrl, false);
-    renderGallery(items, gallery);
+    loadGallery(gasUrl, false)
+      .then((items) => renderGallery(items, gallery))
+      .catch((err) => console.warn('gallery reload failed', err));
   });
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -452,6 +505,34 @@ function initPage() {
   });
 }
 
-if (typeof document !== 'undefined') {
+export async function runBrowserE2EUpload({ gasUrl, size = 256 * 1024, fileName = 'browser-e2e.mp4', log = () => {} }) {
+  if (!gasUrl) {
+    return { ok: false, reason: 'URL未指定' };
+  }
+  const blob = new Blob([new Uint8Array(size)], { type: 'video/mp4' });
+  blob.name = fileName;
+  const init = await postToGas(gasUrl, {
+    action: 'initUpload',
+    fileName,
+    mimeType: 'video/mp4',
+    fileSize: size,
+    uploaderName: 'browser-e2e',
+    origin: getUploadOrigin()
+  });
+  log(`initUpload OK: ${init.savedName || fileName}`);
+  const result = await uploadFileData(blob, init.sessionUri, {
+    onProgress: (loaded, total) => log(`upload ${loaded}/${total}`)
+  });
+  if (result.fileId) {
+    postToGas(gasUrl, { action: 'finalizeUpload', fileId: result.fileId })
+      .then(() => log('finalizeUpload OK'))
+      .catch((err) => log(`finalizeUpload failed: ${err.message || err}`));
+  } else {
+    log('fileIdなし: データ送信完了として扱います');
+  }
+  return { ok: result.ok, fileId: result.fileId || '' };
+}
+
+if (typeof document !== 'undefined' && document.getElementById('upload-form')) {
   initPage();
 }

@@ -96,3 +96,74 @@ Chromeヘッドレス実測（幅390px）で以下の不合格を検出した。
 2. `node tmp/test_gas_router.mjs`（既存・変更禁止のまま全PASS）
 3. `node tmp/test_upload_client.mjs`（新関数のassert追加込みで全PASS）
 4. テスト内で「注意帯文言がdouga.html/douga.jsに存在すること」を機械確認
+
+---
+
+## 追補3（本番障害の恒久対策／承認済み・完遂せよ）
+
+**実障害**: スマホ実投稿（243MB .mov）でデータ送信は完全成功したが、最終チャンクPUT応答の読取り〜finalizeUpload呼び出しの区間で失敗し、(a)動画が非公開のまま残り（preview 401）(b)UIが「アップロード中」のまま完了表示に遷移しなかった。原因候補=最終PUT応答ボディのCORS読取り不可またはパース例外が完了処理全体を巻き込んだ。
+
+### 1. クライアント完了判定の頑健化（douga.js）
+- 最終チャンクのPUTがHTTP 200/201なら、**レスポンスボディが読めなくても・パースに失敗しても、その時点でそのファイルを「完了」扱い**にする（fileId取得はtry-catchで任意化）
+- finalizeUploadはfileIdが取れた場合のみ呼ぶ。**finalizeの成否・例外はUIの完了表示に影響させない**（失敗はconsoleに記録のみ。公開権限はサーバ側修復〔下記2〕が保証する）
+- 全ファイルのデータ送信完了で必ず「✅ 投稿が完了しました。画面を閉じて大丈夫です」へ遷移し、beforeunload解除・WakeLock releaseを実行（この遷移経路に応答読取り・finalize・list更新への依存を残さない）
+- 完了後のギャラリー再読込は行ってよいが、失敗しても完了表示は維持
+
+### 2. サーバ側の自動修復（お問い合わせ受け皿.gs — 今回のみ変更許可）
+- `listVideos_` で一覧を返す前に、**新しい順20件について anyone/reader 権限を保証**する（権限が無ければ付与。既に有る場合の重複作成がエラーになる実装なら握りつぶして続行）。冪等・1件の失敗で他を巻き込まない
+- お問い合わせ処理・メール文言・既存アクションの入出力仕様は変更禁止
+
+### 3. ブラウザ実機E2Eハーネス（tmp/browser_e2e.html 新規）
+- douga.jsのアップロード実行部を再利用可能な形でexportし、ハーネスページが `?gas=<URLエンコード済みexec URL>&size=<バイト数>` を受けて**合成Blobを実アップロード**→各段階の結果と最終判定を `document.title`（PASS/FAIL）と `#result` 要素に書く（headless Chromeの--dump-domで機械判定するため）
+- 本物のブラウザCORS経路（最終PUT応答読取り含む）を通ることが目的。ハーネス自体はGAS URL未指定なら「URL未指定」表示で終了
+
+### 合格条件（すべて exit 0・実行して確認）
+1. `node --check douga.js` および全 `.js`/`.mjs`
+2. `node tmp/test_gas_router.mjs`（お問い合わせ完全温存assert含め全PASS。権限保証の新ロジック分のassertを追加）
+3. `node tmp/test_upload_client.mjs`（「PUT 200で応答ボディ読取り失敗でも完了扱い」を純関数またはスタブで機械検証するassertを追加）
+4. tmp/browser_e2e.html が存在し douga.js を読み込む構造であること（実ブラウザ実行はClaude側で行う）
+
+---
+
+## 追補4（発注元指示: 投稿ページと閲覧ページの分離／承認済み・完遂せよ）
+
+発注元指示「アップローダーに、アップ済みの動画の表示はいらない」。以下のとおり分離する。
+
+### 1. douga.html = 投稿専用ページ化
+- ギャラリー（投稿動画一覧・モーダル再生）を douga.html から**撤去**。投稿フォーム・進捗・注意帯・完了表示のみ残す
+- ページ下部に控えめな導線1つ:「投稿された動画を見る →」（gallery.html へのリンク）
+- **既存の配布済みURLを壊さないこと**（douga.html のパス・投稿機能はそのまま）
+
+### 2. gallery.html = 閲覧専用ページ新設
+- 現行ギャラリー（一覧・新しい順・サムネイル・モーダル再生・`?mock=1`対応）をそのまま移設。デザイントーン統一
+- 上部に控えめな導線1つ:「動画を投稿する →」（douga.html へのリンク）
+- アップロード関連のコード・UIは含めない（ページを軽くする）
+
+### 3. 共通化と結線
+- douga.js は投稿用と閲覧用が共有する定数・純関数を保ちつつ、閲覧専用ロジックの分離は任せる（別ファイル gallery.js 可）。GAS_URL定数は両ページで同一値を参照（douga.html の現行値をコピー）
+- index.html のナビ「みんなの動画」リンク先を gallery.html に変更（閲覧が主動線）
+- GASファイルは変更禁止
+
+### 合格条件（すべて exit 0）
+1. `node --check` 全 `.js`
+2. `node tmp/test_gas_router.mjs`・`node tmp/test_upload_client.mjs` 全PASS（既存assertの構成変更は最小限）
+3. テストで機械確認: douga.html にギャラリーDOM/一覧取得コードが無いこと・gallery.html に投稿フォームが無いこと・両ページの相互リンクが存在すること・index.html のリンク先が gallery.html であること
+4. 両ページとも `?mock=1` でレンダリング可能（実測はClaude側）
+
+---
+
+## 追補3b（実ブラウザ検収FAILの根本修正・CORS Origin／承認済み・完遂せよ／追補4より先に実施）
+
+**実測事実**: tmp/browser_e2e.html の実ブラウザ実行で `initUpload OK` 直後に `TypeError: Failed to fetch at queryUploadPosition` で FAIL（headless Chrome・本番GAS）。原因=Drive resumable セッションを**Originヘッダー無しで作成**しているため、セッションURIへのブラウザからのCORSリクエストが許可されない（Google公式ドキュメントの既知仕様: ブラウザから継続するセッションは、開始リクエストに Origin ヘッダーを含める）。
+
+### 修正内容
+1. **douga.js**: initUpload のリクエストペイロードに `origin: location.origin` を追加して送る
+2. **お問い合わせ受け皿.gs**: `initUpload` がペイロードの `origin`（文字列・`https://` または `http://127.` / `http://localhost` で始まる場合のみ採用、それ以外は無視）を受け取り、resumableセッション作成の UrlFetchApp 呼び出しヘッダーに `Origin: <その値>` を付与する。origin未指定なら従来どおり
+3. **douga.js のアップロード手順**: 初回アップロード試行は**位置照会（queryUploadPosition）を経由せず**、直接先頭チャンクのPUTから始める。位置照会はエラー後の再開時のみ使用し、照会自体の失敗も致命化しない（キャッチして最初からのリトライにフォールバック）
+4. 追補3の頑健化（PUT 200/201で本文不読でも完了・finalize失敗をUIに波及させない）は維持
+
+### 合格条件（すべて exit 0）
+1. `node --check` 全 `.js`/`.mjs`
+2. `node tmp/test_gas_router.mjs` — 追加assert: initUpload に origin を渡すとセッション作成 fetch のヘッダーに `Origin` が入る／不正な origin（`javascript:` 等）は無視される／origin無しでも従来動作
+3. `node tmp/test_upload_client.mjs` — 追加assert: 初回試行が位置照会を経ずチャンクPUTから始まる（呼び出し順を記録するスタブで機械検証）
+4. 実ブラウザ判定はClaude側で tmp/browser_e2e.html を再実行（title=PASS が合格）

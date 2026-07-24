@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAIT</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; line-height: 1.7; }
+  #result { white-space: pre-wrap; border: 1px solid #ddd; padding: 12px; }
+</style>
+</head>
+<body>
+<h1>Browser E2E Upload</h1>
+<div id="result">WAIT</div>
+<script type="module">
+  import { runBrowserE2EUpload } from '../douga.js';
+
+  const result = document.getElementById('result');
+  const params = new URLSearchParams(location.search);
+  const gasUrl = params.get('gas') || '';
+  const size = Number(params.get('size') || 262144);
+  const lines = [];
+  const log = (line) => {
+    lines.push(line);
+    result.textContent = lines.join('\n');
+  };
+
+  if (!gasUrl) {
+    document.title = 'URL未指定';
+    result.textContent = 'URL未指定';
+  } else {
+    runBrowserE2EUpload({ gasUrl, size, log })
+      .then((outcome) => {
+        document.title = outcome.ok ? 'PASS' : 'FAIL';
+        log(JSON.stringify(outcome));
+      })
+      .catch((err) => {
+        document.title = 'FAIL';
+        log(err && err.stack ? err.stack : String(err));
+      });
+  }
+</script>
+</body>
+</html>

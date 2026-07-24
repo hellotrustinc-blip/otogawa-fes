@@ -13,7 +13,10 @@ const {
   sanitizeFileName,
   formatJstDateTime,
   formatBytes,
-  formatProgress
+  formatProgress,
+  getUploadOrigin,
+  readCompletedUploadId,
+  uploadFileData
 } = await import(moduleUrl);
 
 assert.equal(CHUNK_SIZE, 8388608);
@@ -31,13 +34,70 @@ assert.equal(formatJstDateTime(new Date('2026-07-23T15:30:00.000Z')), '2026-07-2
 assert.equal(formatBytes(512 * 1024), '512 KB');
 assert.equal(formatBytes(1024 * 1024), '1.0 MB');
 assert.equal(formatBytes(12.25 * 1024 * 1024), '12.3 MB');
+assert.equal(getUploadOrigin(), '');
+assert.match(source, /origin:\s*getUploadOrigin\(\)/);
 assert.equal(formatProgress(0, 85 * 1024 * 1024), '0 KB / 85.0 MB（0%）');
 assert.equal(formatProgress(12.25 * 1024 * 1024, 85 * 1024 * 1024), '12.3 MB / 85.0 MB（14%）');
 assert.equal(formatProgress(85 * 1024 * 1024, 85 * 1024 * 1024), '85.0 MB / 85.0 MB（100%）');
+
+const unreadableFinal = await readCompletedUploadId({
+  status: 200,
+  json: async () => {
+    throw new Error('CORS body read failed');
+  }
+});
+assert.deepEqual(unreadableFinal, { complete: true, fileId: '' });
+
+const fakeFile = {
+  size: 1024,
+  slice(start, end) {
+    return { start, end };
+  }
+};
+const progressEvents = [];
+const finalResult = await uploadFileData(fakeFile, 'https://upload.example/session', {
+  fetchImpl: async () => ({
+    status: 200,
+    json: async () => {
+      throw new Error('body parse failed');
+    }
+  }),
+  onProgress: (loaded, totalBytes) => progressEvents.push([loaded, totalBytes])
+});
+assert.deepEqual(finalResult, { ok: true, fileId: '' });
+assert.deepEqual(progressEvents, [[1024, 1024]]);
+
+const retryEvents = [];
+let retryFetchCount = 0;
+const retryResult = await uploadFileData(fakeFile, 'https://upload.example/session', {
+  fetchImpl: async (url, options = {}) => {
+    retryEvents.push(['fetch', options.headers['Content-Range']]);
+    retryFetchCount += 1;
+    if (retryFetchCount === 1) throw new Error('network down');
+    return {
+      status: 200,
+      json: async () => ({ id: 'file123' })
+    };
+  },
+  queryPosition: async () => {
+    retryEvents.push(['query']);
+    throw new Error('probe blocked by CORS');
+  }
+});
+assert.deepEqual(retryResult, { ok: true, fileId: 'file123' });
+assert.deepEqual(retryEvents, [
+  ['fetch', 'bytes 0-1023/1024'],
+  ['query'],
+  ['fetch', 'bytes 0-1023/1024']
+]);
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');
 assert.match(html, /mock=1/);
 assert.match(`${html}\n${source}`, /アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください/);
 assert.match(source, /MOCK_ITEMS[\s\S]*mock006/);
+
+const browserHarness = await readFile(new URL('./browser_e2e.html', import.meta.url), 'utf8');
+assert.match(browserHarness, /type="module"/);
+assert.match(browserHarness, /from '\.\.\/douga\.js'/);
 
 pathToFileURL('.');

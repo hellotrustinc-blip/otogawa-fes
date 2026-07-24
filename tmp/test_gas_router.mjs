@@ -135,6 +135,47 @@ function parseOutput(output) {
 }
 
 {
+  const { context, fetchCalls } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({
+    action: 'initUpload',
+    fileName: 'a.mp4',
+    mimeType: 'video/mp4',
+    fileSize: 1024,
+    origin: 'https://example.com'
+  }) } });
+  assert.equal(parseOutput(output).ok, true);
+  const uploadCall = fetchCalls.find((call) => call.url.includes('upload/drive/v3/files?uploadType=resumable'));
+  assert.equal(uploadCall.options.headers.Origin, 'https://example.com');
+}
+
+{
+  const { context, fetchCalls } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({
+    action: 'initUpload',
+    fileName: 'a.mp4',
+    mimeType: 'video/mp4',
+    fileSize: 1024,
+    origin: 'javascript:alert(1)'
+  }) } });
+  assert.equal(parseOutput(output).ok, true);
+  const uploadCall = fetchCalls.find((call) => call.url.includes('upload/drive/v3/files?uploadType=resumable'));
+  assert.equal(Object.prototype.hasOwnProperty.call(uploadCall.options.headers, 'Origin'), false);
+}
+
+{
+  const { context, fetchCalls } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({
+    action: 'initUpload',
+    fileName: 'a.mp4',
+    mimeType: 'video/mp4',
+    fileSize: 1024
+  }) } });
+  assert.equal(parseOutput(output).ok, true);
+  const uploadCall = fetchCalls.find((call) => call.url.includes('upload/drive/v3/files?uploadType=resumable'));
+  assert.equal(Object.prototype.hasOwnProperty.call(uploadCall.options.headers, 'Origin'), false);
+}
+
+{
   const badMime = makeContext().context.doPost({ postData: { contents: JSON.stringify({ action: 'initUpload', fileName: 'a.txt', mimeType: 'text/plain', fileSize: 1 }) } });
   assert.equal(parseOutput(badMime).ok, false);
 
@@ -158,11 +199,38 @@ function parseOutput(output) {
 }
 
 {
-  const { context } = makeContext();
+  const { context, fetchCalls } = makeContext();
   const output = context.doGet({ parameter: { action: 'list' } });
   const json = parseOutput(output);
   assert.equal(json.ok, true);
   assert.deepEqual(json.items.map((item) => item.id), ['new', 'mid', 'old']);
+  const permissionCalls = fetchCalls.filter((call) => call.url.includes('/permissions'));
+  assert.deepEqual(
+    permissionCalls.map((call) => call.url.match(/files\/([^/]+)\/permissions/)[1]),
+    ['new', 'mid', 'old']
+  );
+}
+
+{
+  const { context } = makeContext();
+  context.UrlFetchApp.fetch = (url, options = {}) => {
+    if (url.includes('/drive/v3/files?')) {
+      return response(200, {}, JSON.stringify({
+        files: [
+          { id: 'a', name: 'a.mp4', createdTime: '2026-07-24T00:00:00Z', size: '1' },
+          { id: 'b', name: 'b.mp4', createdTime: '2026-07-23T00:00:00Z', size: '1' }
+        ]
+      }));
+    }
+    if (url.includes('/permissions')) {
+      throw new Error('permission create failed');
+    }
+    return response(200, {}, '{}');
+  };
+  const output = context.doGet({ parameter: { action: 'list' } });
+  const json = parseOutput(output);
+  assert.equal(json.ok, true);
+  assert.deepEqual(json.items.map((item) => item.id), ['a', 'b']);
 }
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');

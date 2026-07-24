@@ -120,14 +120,19 @@ function initUpload_(payload) {
 
   var folderId = getUploadFolderId_();
   var savedName = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd_HHmm') + '_' + uploaderName + '_' + fileName;
+  var headers = {
+    Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+    'X-Upload-Content-Type': mimeType,
+    'X-Upload-Content-Length': String(fileSize)
+  };
+  var origin = safeOrigin_(payload.origin);
+  if (origin) {
+    headers.Origin = origin;
+  }
   var response = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
     method: 'post',
     contentType: 'application/json; charset=utf-8',
-    headers: {
-      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
-      'X-Upload-Content-Type': mimeType,
-      'X-Upload-Content-Length': String(fileSize)
-    },
+    headers: headers,
     payload: JSON.stringify({ name: savedName, parents: [folderId], mimeType: mimeType }),
     muteHttpExceptions: true
   });
@@ -173,19 +178,38 @@ function listVideos_() {
       return { ok: false, error: '動画一覧を取得できませんでした。' };
     }
     var data = JSON.parse(response.getContentText() || '{"files":[]}');
-    var items = (data.files || []).map(function(file) {
+    var files = (data.files || []).sort(function(a, b) {
+      return String(b.createdTime).localeCompare(String(a.createdTime));
+    });
+    files.slice(0, 20).forEach(function(file) {
+      ensureAnyoneReader_(file.id);
+    });
+    var items = files.map(function(file) {
       return {
         id: file.id,
         name: file.name,
         createdTime: file.createdTime,
         size: file.size || ''
       };
-    }).sort(function(a, b) {
-      return String(b.createdTime).localeCompare(String(a.createdTime));
     });
     return { ok: true, items: items };
   } catch (err) {
     return { ok: false, error: '動画一覧を取得できませんでした。' };
+  }
+}
+
+function ensureAnyoneReader_(fileId) {
+  if (!fileId) return;
+  try {
+    UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '/permissions', {
+      method: 'post',
+      contentType: 'application/json; charset=utf-8',
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+      payload: JSON.stringify({ role: 'reader', type: 'anyone' }),
+      muteHttpExceptions: true
+    });
+  } catch (err) {
+    // 一覧全体を止めないため、権限補正の単体失敗は握りつぶします。
   }
 }
 
@@ -224,6 +248,14 @@ function sanitizeName_(value) {
     .replace(/^\.+/, '')
     .slice(0, 120);
   return name || 'video';
+}
+
+function safeOrigin_(value) {
+  var origin = String(value || '').trim();
+  if (origin.indexOf('https://') === 0) return origin;
+  if (origin.indexOf('http://127.') === 0) return origin;
+  if (origin.indexOf('http://localhost') === 0) return origin;
+  return '';
 }
 
 function json_(value) {
