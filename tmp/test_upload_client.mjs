@@ -95,6 +95,12 @@ assert.deepEqual(retryEvents, [
 
 const html = await readFile(new URL('../douga.html', import.meta.url), 'utf8');
 const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const normalizeContactText = (value) => value.replace(/\s+/g, '');
+const extractContactDoneText = (value) => {
+  const match = value.match(/<div id="cf_done"[\s\S]*?<\/div>/);
+  assert.ok(match, 'cf_done section exists');
+  return normalizeContactText(match[0]);
+};
 assert.match(html, /mock=1/);
 assert.match(html, /動画の投稿にあたって（個人情報の取り扱い・著作権）/);
 assert.match(html, /1\. 投稿できる動画/);
@@ -117,6 +123,16 @@ assert.match(source, /fileInput\.value\s*=\s*''/);
 assert.doesNotMatch(html, /id="gallery"|id="video-modal"|action=list/);
 assert.doesNotMatch(html, /投稿された動画を見る|href="gallery\.html"|>見る/);
 assert.match(indexHtml, /href="douga\.html">動画を投稿/);
+assert.match(html, /<section id="cf-contact"[\s\S]*?<h2>お問い合わせ<\/h2>/);
+assert.match(html, /<label>お名前<input type="text" name="name" required><\/label>/);
+assert.match(html, /<label>メールアドレス<input type="email" name="email" required><\/label>/);
+assert.match(html, /<label>お問い合わせ内容<textarea name="message" rows="5" required><\/textarea><\/label>/);
+assert.match(html, /メールが<strong>迷惑メールフォルダ<\/strong>に振り分けられている可能性があります/);
+assert.ok(html.indexOf('id="upload-form"') < html.indexOf('id="cf-contact"'));
+assert.ok(html.indexOf('id="upload-alert"') < html.indexOf('id="cf-contact"'));
+assert.equal(extractContactDoneText(html), extractContactDoneText(indexHtml));
+assert.match(html, /f\.setAttribute\('action', window\.GAS_URL\)/);
+assert.match(html, /function onDougaContactSubmit\(\)/);
 
 const browserHarness = await readFile(new URL('./browser_e2e.html', import.meta.url), 'utf8');
 assert.match(browserHarness, /type="module"/);

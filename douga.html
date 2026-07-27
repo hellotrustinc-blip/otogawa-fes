@@ -42,7 +42,8 @@
   .note{font-size:.92rem;color:#4f4138}
   .rules{margin:16px 0 0 1.2em;font-size:.9rem;color:#4f4138}
   label{display:block;font-weight:700}
-  input[type="text"]{width:100%;margin-top:8px;padding:12px;border:1px solid rgba(26,20,16,.18);border-radius:6px;background:#fff;font:inherit}
+  input[type="text"],input[type="email"],textarea{width:100%;margin-top:8px;padding:12px;border:1px solid rgba(26,20,16,.18);border-radius:6px;background:#fff;font:inherit}
+  textarea{resize:vertical}
   .visually-hidden-file{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   .step{margin-top:18px;padding-top:2px}
   .step-title{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;color:var(--red-d)}
@@ -73,6 +74,13 @@
   .sub-link{display:inline-block;margin-top:18px;color:var(--red-d);font-weight:700;text-decoration:none}
   .sub-link:hover{text-decoration:underline}
   .muted{color:#6d625a}
+  .contact-panel{margin-top:28px}
+  .lead-txt{font-size:.95rem;color:#4f4138}
+  .cform{margin-top:18px;display:flex;flex-direction:column;gap:16px}
+  .cform button{align-self:stretch}
+  .cf-done{margin-top:18px;border:1px solid rgba(47,125,79,.35);background:#eef8f1;border-radius:8px;padding:16px;color:#24613c}
+  .cf-done-t{font-weight:700;font-size:1.05rem}
+  .cf-note{margin-top:10px;font-size:.9rem}
 </style>
 <script>
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbze0fQizkV9H40tu0_XSmC4DM5MuD_2PZDsKxgZcjwprYpCK2SESj3jKcP0-h1khO_F/exec';
@@ -152,7 +160,48 @@
       <div id="upload-alert" class="upload-alert sans" hidden>⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください</div>
     </section>
   </div>
+  <section id="cf-contact" class="panel contact-panel">
+    <h2>お問い合わせ</h2>
+    <p class="lead-txt sans">
+      祭礼に関するご質問・ご連絡は、以下のフォームよりお願いいたします。
+    </p>
+    <form id="cf-cform" class="cform sans" method="POST" action="" target="cf_iframe" onsubmit="return onDougaContactSubmit()">
+      <label>お名前<input type="text" name="name" required></label>
+      <label>メールアドレス<input type="email" name="email" required></label>
+      <label>お問い合わせ内容<textarea name="message" rows="5" required></textarea></label>
+      <button type="submit" class="btn">送信する</button>
+    </form>
+    <iframe name="cf_iframe" style="display:none"></iframe>
+    <div id="cf_done" class="cf-done" hidden>
+      <p class="cf-done-t">送信しました。ありがとうございます。</p>
+      <p>ご入力いただいたメールアドレス宛に、受付確認の自動返信をお送りしました。<br>
+         担当者より数日以内に、改めてご返信いたします。</p>
+      <p class="cf-note">※ 数日経っても返信・自動返信メールが届かない場合、正しく送信できていないか、
+         メールが<strong>迷惑メールフォルダ</strong>に振り分けられている可能性があります。
+         お手数ですが迷惑メールフォルダをご確認のうえ、再度お問い合わせください。</p>
+    </div>
+  </section>
 </main>
+<script>
+  (function(){
+    var f=document.getElementById('cf-cform');
+    if(f && window.GAS_URL){
+      f.setAttribute('action', window.GAS_URL);
+    }
+  })();
+  function onDougaContactSubmit(){
+    var f=document.getElementById('cf-cform');
+    if(!f.getAttribute('action') || f.getAttribute('action').indexOf('__GAS_URL__')!==-1){
+      alert('送信先(URL)が未設定です。設置手順に従いフォームの送信先を設定してください。');
+      return false; // 未設定なら送信しない
+    }
+    setTimeout(function(){
+      f.hidden=true;
+      document.getElementById('cf_done').hidden=false;
+    },300);
+    return true; // 実際の送信は継続（iframe宛）
+  }
+</script>
 <script type="module" src="./douga.js"></script>
 </body>
 </html>
