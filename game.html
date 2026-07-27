@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>祭｜おみこしわっしょい</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='18'%20fill='%23b23a2e'/%3E%3Ctext%20x='50'%20y='74'%20font-size='66'%20text-anchor='middle'%20fill='%23f7f1e6'%20font-family='serif'%3E%E7%A5%AD%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#1a1410;
+    --paper:#f7f1e6;
+    --paper2:#efe6d4;
+    --red:#b23a2e;
+    --red-d:#8f2c22;
+    --gold:#c99a2e;
+    --navy:#243b53;
+    --shadow:0 8px 30px rgba(26,20,16,.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}
+  body{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;line-height:1.7;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .shell{min-height:100vh;display:flex;flex-direction:column}
+  header{height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;background:rgba(247,241,230,.95);border-bottom:1px solid rgba(26,20,16,.1)}
+  .brand{font-weight:700;letter-spacing:.1em;color:var(--red-d);white-space:nowrap}
+  .home{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.88rem;text-decoration:none;border:1px solid rgba(26,20,16,.2);border-radius:999px;padding:6px 12px;background:#fff7}
+  main{flex:1;display:flex;justify-content:center;padding:12px 10px 18px}
+  .game{width:min(100%,430px);display:grid;gap:10px}
+  .hud{display:grid;gap:8px}
+  .progress-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.78rem;color:#5a4338}
+  .bar{height:14px;background:#e6d8bf;border:1px solid rgba(26,20,16,.15);border-radius:999px;overflow:hidden;position:relative}
+  .bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:999px;transition:width .12s linear}
+  .status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#684437}
+  .sound{border:0;border-radius:999px;background:var(--navy);color:#fff;min-width:42px;height:34px;font-size:1rem;cursor:pointer}
+  .stage-wrap{position:relative;width:100%;aspect-ratio:9/16;min-height:560px;max-height:720px;background:#d9edf1;border:2px solid rgba(26,20,16,.18);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);touch-action:manipulation;user-select:none}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;background:#d9edf1}
+  .guide{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;justify-content:center;min-height:42px;padding:8px 12px;border-radius:8px;background:rgba(26,20,16,.78);color:#fff;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;letter-spacing:.04em;text-align:center;pointer-events:none}
+  .callout{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.7);opacity:0;color:#fff;background:rgba(178,58,46,.9);border:2px solid #f7f1e6;border-radius:8px;padding:8px 14px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;box-shadow:0 8px 18px rgba(0,0,0,.2);transition:opacity .18s,transform .18s;pointer-events:none}
+  .callout.show{opacity:1;transform:translate(-50%,-70%) scale(1)}
+  .finish{position:absolute;inset:0;display:grid;place-items:center;background:rgba(247,241,230,.88);padding:18px;text-align:center}
+  .finish[hidden]{display:none}
+  .finish-card{background:#fff;border:2px solid rgba(178,58,46,.2);border-radius:8px;padding:22px 18px;box-shadow:var(--shadow);width:min(100%,330px)}
+  .finish h1{margin:0 0 8px;color:var(--red-d);font-size:1.85rem;line-height:1.3;letter-spacing:.04em}
+  .finish p{margin:0 0 16px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .again{border:0;border-radius:999px;background:var(--gold);color:#2a1e05;font-weight:700;padding:12px 24px;font-size:1rem;cursor:pointer}
+  footer{padding:0 14px 16px;text-align:center;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#6d5b4a}
+  @media(max-width:420px){
+    header{padding:0 10px}
+    main{padding:8px 0 14px}
+    .game{width:100%;gap:8px}
+    .stage-wrap{border-left:0;border-right:0;border-radius:0;min-height:min(640px,calc(100vh - 170px))}
+    .hud{padding:0 10px}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">おみこしわっしょい</div>
+    <a class="home" href="./index.html">トップへ戻る</a>
+  </header>
+  <main>
+    <section class="game" aria-label="おみこしわっしょいゲーム">
+      <div class="hud">
+        <div class="progress-row"><span>スタート</span><div class="bar" aria-label="進捗"><i id="progressFill"></i></div><span>⛩ 八坂神社</span></div>
+        <div class="status"><span id="statusText">下がった側をタップして支えます</span><button id="soundBtn" class="sound" type="button" aria-label="音を切り替え">🔇</button></div>
+      </div>
+      <div id="stage" class="stage-wrap">
+        <canvas id="gameCanvas" width="390" height="690"></canvas>
+        <div id="callout" class="callout">わっしょい！</div>
+        <div id="finish" class="finish" hidden>
+          <div class="finish-card">
+            <h1>奉納完了！<br>わっしょい！</h1>
+            <p id="timeText">所要タイム 0.0秒</p>
+            <button id="againBtn" class="again" type="button">もう一回</button>
+          </div>
+        </div>
+        <div class="guide">⬇下がった側をタップ！</div>
+      </div>
+    </section>
+  </main>
+  <footer>画像・音声ファイル不使用のCanvasミニゲームです。</footer>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const fill = document.getElementById('progressFill');
+  const callout = document.getElementById('callout');
+  const finish = document.getElementById('finish');
+  const timeText = document.getElementById('timeText');
+  const statusText = document.getElementById('statusText');
+  const soundBtn = document.getElementById('soundBtn');
+  const againBtn = document.getElementById('againBtn');
+
+  const W = 390;
+  const H = 690;
+  const limit = 0.62;
+  const tapImpulse = 0.255;
+  const targetSeconds = 62;
+  let state;
+  let last = performance.now();
+  let audioCtx = null;
+  let soundOn = false;
+  let calloutTimer = 0;
+  let finishedAt = 0;
+
+  function reset() {
+    state = {
+      theta: 0.05,
+      omega: 0,
+      progress: 0,
+      drops: 0,
+      elapsed: 0,
+      finished: false,
+      wobbleSeed: Math.random() * 1000,
+      confetti: []
+    };
+    finish.hidden = true;
+    callout.classList.remove('show');
+    statusText.textContent = '下がった側をタップして支えます';
+    fill.style.width = '0%';
+    last = performance.now();
+  }
+
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function playTone(freq, dur, type, gain) {
+    if (!soundOn || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const amp = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    amp.gain.setValueAtTime(gain, now);
+    amp.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(amp).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + dur);
+  }
+
+  function taiko() {
+    playTone(110, 0.12, 'sine', 0.16);
+    playTone(74, 0.08, 'square', 0.05);
+  }
+
+  function voice() {
+    playTone(330, 0.07, 'triangle', 0.05);
+    setTimeout(() => playTone(420, 0.07, 'triangle', 0.04), 70);
+  }
+
+  function popCallout(text) {
+    callout.textContent = text;
+    callout.classList.add('show');
+    clearTimeout(calloutTimer);
+    calloutTimer = setTimeout(() => callout.classList.remove('show'), 720);
+  }
+
+  function tapSide(x) {
+    if (state.finished) return;
+    const rect = canvas.getBoundingClientRect();
+    const localX = x - rect.left;
+    state.omega += localX < rect.width / 2 ? tapImpulse : -tapImpulse;
+    state.theta += localX < rect.width / 2 ? 0.035 : -0.035;
+    state.theta = Math.max(-limit * 0.85, Math.min(limit * 0.85, state.theta));
+    taiko();
+    if (Math.random() < 0.22) {
+      popCallout('わっしょい！');
+      voice();
+    }
+  }
+
+  stage.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    tapSide(ev.clientX);
+  });
+  canvas.addEventListener('click', (ev) => tapSide(ev.clientX));
+  canvas.addEventListener('touchstart', (ev) => {
+    if (ev.changedTouches[0]) tapSide(ev.changedTouches[0].clientX);
+  }, { passive: true });
+
+  soundBtn.addEventListener('click', async (ev) => {
+    ev.stopPropagation();
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    if (soundOn) taiko();
+  });
+  againBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    reset();
+  });
+
+  function addConfetti() {
+    for (let i = 0; i < 90; i++) {
+      state.confetti.push({
+        x: rand(0, W), y: rand(-260, -10), vx: rand(-32, 32), vy: rand(55, 150),
+        r: rand(3, 7), a: rand(0, Math.PI), c: ['#b23a2e','#c99a2e','#243b53','#f7f1e6','#2f8f72'][i % 5]
+      });
+    }
+  }
+
+  function failReset() {
+    state.drops++;
+    state.progress = Math.max(0, state.progress - 0.05);
+    state.theta = 0;
+    state.omega = 0;
+    statusText.textContent = 'おっとっと！立て直しました';
+    popCallout('おっとっと！');
+    taiko();
+  }
+
+  function finishGame() {
+    state.finished = true;
+    finishedAt = state.elapsed;
+    addConfetti();
+    timeText.textContent = `所要タイム ${finishedAt.toFixed(1)}秒`;
+    finish.hidden = false;
+    statusText.textContent = `奉納完了 落下 ${state.drops}回`;
+    popCallout('奉納完了！');
+    voice();
+  }
+
+  function update(dt) {
+    if (state.finished) {
+      state.confetti.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.a += dt * 6; if (p.y > H + 20) p.y = rand(-180, -20); });
+      return;
+    }
+    state.elapsed += dt;
+    const difficulty = 1 + state.progress * 1.8;
+    const drift = Math.sin(state.elapsed * 1.7 + state.wobbleSeed) * 0.18 + Math.sin(state.elapsed * 3.1) * 0.08;
+    const randomKick = (Math.random() - 0.5) * 0.18 * difficulty;
+    state.omega += (state.theta * 1.48 * difficulty + drift * 0.12 + randomKick) * dt;
+    state.omega *= Math.pow(0.985, dt * 60);
+    state.theta += state.omega * dt;
+    state.progress += dt / targetSeconds;
+    fill.style.width = `${Math.min(100, state.progress * 100).toFixed(2)}%`;
+    if (Math.random() < dt * 0.38) {
+      popCallout('わっしょい！');
+      voice();
+    }
+    if (Math.abs(state.theta) > limit) failReset();
+    if (state.progress >= 1) finishGame();
+  }
+
+  function block(x, y, w, h, c) {
+    ctx.fillStyle = c;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  }
+
+  function drawBackground() {
+    const p = state.progress;
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, p < .72 ? '#dff3f6' : '#f5e5d8');
+    sky.addColorStop(1, '#f7f1e6');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    block(0, 420, W, 270, '#d7c39f');
+    block(0, 512, W, 178, '#b98b62');
+    for (let i = 0; i < 7; i++) {
+      const x = ((i * 82 - (p * 130) % 82) | 0) - 18;
+      const y = 318 + (i % 2) * 18;
+      block(x, y, 48, 72, i % 2 ? '#f3dfbb' : '#e9cfa3');
+      block(x - 4, y - 12, 56, 14, '#6c4d3c');
+      block(x + 8, y + 20, 12, 16, '#b23a2e');
+      block(x + 28, y + 20, 10, 16, '#243b53');
+    }
+    for (let i = 0; i < 10; i++) {
+      const x = ((i * 48 - (p * 210) % 48) | 0);
+      block(x, 398, 3, 74, '#5a3528');
+      block(x - 9, 394, 21, 16, '#b23a2e');
+      block(x - 6, 399, 15, 5, '#c99a2e');
+    }
+    for (let i = 0; i < 14; i++) {
+      const x = ((i * 34 - (p * 170) % 34) | 0) - 12;
+      block(x, 458, 8, 16, '#2b3044');
+      block(x - 2, 474, 12, 22, i % 3 ? '#6353a6' : '#b23a2e');
+    }
+    if (p > .66) drawShrine((p - .66) / .34);
+  }
+
+  function drawShrine(t) {
+    const x = 255 - t * 95;
+    block(x + 18, 210, 18, 158, '#b23a2e');
+    block(x + 96, 210, 18, 158, '#b23a2e');
+    block(x - 4, 196, 156, 18, '#b23a2e');
+    block(x + 8, 174, 132, 20, '#8f2c22');
+    block(x + 28, 285, 84, 72, '#efe6d4');
+    block(x + 18, 270, 104, 18, '#6c4d3c');
+    block(x + 52, 304, 30, 54, '#243b53');
+  }
+
+  function drawMikoshi() {
+    const cx = 108 + state.progress * 74;
+    const cy = 386 + Math.sin(state.elapsed * 9) * 3;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(state.theta);
+    block(-98, 22, 196, 11, '#6b3f26');
+    block(-46, -34, 92, 54, '#b23a2e');
+    block(-56, -42, 112, 13, '#c99a2e');
+    block(-38, -64, 76, 25, '#c99a2e');
+    block(-26, -86, 52, 25, '#b23a2e');
+    block(-8, -108, 16, 24, '#c99a2e');
+    block(-32, -24, 18, 26, '#f7f1e6');
+    block(14, -24, 18, 26, '#f7f1e6');
+    block(-60, 14, 120, 8, '#243b53');
+    ctx.restore();
+    const lean = Math.sin(state.theta) * 34;
+    drawCarrier(cx - 64, cy + 38 - lean * .4, '#243b53');
+    drawCarrier(cx + 64, cy + 38 + lean * .4, '#8f2c22');
+  }
+
+  function drawCarrier(x, y, c) {
+    block(x - 7, y - 30, 14, 14, '#d79c73');
+    block(x - 10, y - 16, 20, 26, c);
+    block(x - 15, y - 2, 9, 28, '#333');
+    block(x + 6, y - 2, 9, 28, '#333');
+    block(x - 17, y - 13, 14, 7, '#d79c73');
+    block(x + 3, y - 13, 14, 7, '#d79c73');
+    block(x - 8, y - 36, 16, 5, '#f7f1e6');
+  }
+
+  function drawConfetti() {
+    state.confetti.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.a);
+      block(-p.r / 2, -p.r / 2, p.r, p.r * .6, p.c);
+      ctx.restore();
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+    drawMikoshi();
+    if (state.finished) drawConfetti();
+    ctx.fillStyle = 'rgba(247,241,230,.82)';
+    ctx.fillRect(10, 12, 118, 28);
+    ctx.fillStyle = '#5a4338';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`落下 ${state.drops}回`, 22, 31);
+    if (!state.finished) {
+      ctx.fillStyle = Math.abs(state.theta) > limit * .72 ? '#b23a2e' : '#243b53';
+      ctx.fillText(state.theta > 0 ? '右が下がり気味' : '左が下がり気味', 215, 31);
+    }
+  }
+
+  function loop(now) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  window.__omikoshiDebug = {
+    getState: () => ({ theta: state.theta, progress: state.progress, finished: state.finished, drops: state.drops }),
+    forceGoal: () => { state.progress = 1; finishGame(); draw(); },
+    tapLeft: () => tapSide(canvas.getBoundingClientRect().left + 20),
+    tapRight: () => tapSide(canvas.getBoundingClientRect().left + canvas.getBoundingClientRect().width - 20)
+  };
+
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
