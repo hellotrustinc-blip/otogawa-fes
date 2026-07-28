@@ -30,6 +30,9 @@ if (!/\bforceBird\b/.test(game)) fail('debug API forceBird() がありません'
 if (!/イクゾー！/.test(game)) fail('開始時のイクゾー表示がありません');
 if (!/しっかりしろよー/.test(game)) fail('観客の声がありません');
 if (!/トリだ/.test(game)) fail('鳥イベント表示がありません');
+if (!/const\s+cx\s*=\s*W\s*\/\s*2\s*;/.test(game)) fail('神輿一団の描画x中心が canvas 中央固定ではありません');
+if (!/state\.mode\s*!==\s*['"]hard['"][\s\S]*右が下がり気味[\s\S]*左が下がり気味/.test(game)) fail('hard モードで傾き方向ガイドを非表示にする条件がありません');
+if (!/⬇下がった側をタップ！/.test(game)) fail('下部の静的ガイドがありません');
 if (/<(?:script|img|audio|source|iframe|link)\b[^>]*(?:src|href)=["']https?:\/\/(?!sites\.google\.com\/view\/otogawafes\/%E3%83%9B%E3%83%BC%E3%83%A0)/i.test(game)) fail('game.html に許可以外の外部URL参照があります');
 if (/\bfetch\s*\(\s*["']https?:\/\//i.test(game)) fail('game.html に外部 fetch があります');
 if (!/href=["']game\.html["']/.test(index)) fail('index.html に game.html へのリンクがありません');

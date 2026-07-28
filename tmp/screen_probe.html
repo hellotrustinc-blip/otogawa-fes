@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>screen probe</title>
+<style>body{margin:0}iframe{width:390px;height:700px;border:0;display:block}</style></head>
+<body>
+<iframe id="f" src="../game.html"></iframe>
+<script>
+  // スクリーンショット検収用: ?mode=easy|hard で開始し、走行中の画面を撮らせる
+  const mode = new URLSearchParams(location.search).get('mode') || 'easy';
+  const f = document.getElementById('f');
+  f.addEventListener('load', () => {
+    setTimeout(() => {
+      try { f.contentWindow.__omikoshiDebug.start(mode); } catch (e) {}
+    }, 800);
+  });
+</script>
+</body>
+</html>

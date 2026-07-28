@@ -468,7 +468,7 @@
   }
 
   function drawMikoshi() {
-    const cx = 108 + state.progress * 74;
+    const cx = W / 2;
     const cy = 386 + Math.sin(state.elapsed * 9) * 3;
     ctx.save();
     ctx.translate(cx, cy);
@@ -556,8 +556,10 @@
     ctx.font = '14px sans-serif';
     ctx.fillText(`落下 ${state.drops}回`, 22, 31);
     if (!state.finished && state.phase === 'play') {
-      ctx.fillStyle = Math.abs(state.theta) > limit * .72 ? '#b23a2e' : '#243b53';
-      ctx.fillText(state.theta > 0 ? '右が下がり気味' : '左が下がり気味', 215, 31);
+      if (state.mode !== 'hard') {
+        ctx.fillStyle = Math.abs(state.theta) > limit * .72 ? '#b23a2e' : '#243b53';
+        ctx.fillText(state.theta > 0 ? '右が下がり気味' : '左が下がり気味', 215, 31);
+      }
       if (state.mode === 'hard') {
         ctx.fillStyle = '#8f2c22';
         ctx.fillText('むずかしい', 22, 56);

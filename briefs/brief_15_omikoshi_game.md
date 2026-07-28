@@ -263,3 +263,37 @@
 - 構文検査: `game.html` 内の inline script を Node で抽出し `new Function(script)` に通して、`OK: inline scripts parse` を確認した。
 - ブラウザ実測: このCodex環境では Chrome headless の `--dump-dom --virtual-time-budget=160000` で `tmp/game_autoplay_e2e.html`、`?interval=250`、`?mode=hard` のいずれも `E2E_RESULT` がDOMに出力されなかったため未検証。`file://` でも `NO_E2E_RESULT_FILE_URL` だった。
 - 禁止事項確認: 今回、`tmp/notap_probe.html`、`douga.html`、GAS関連、`index.html`、git commit/push、外部リソース参照追加（公式サイト `<a>` 1箇所を除く）は実行していない。`tmp/game_e2e_claude.html` は作業開始時点の `git status --short` で既に変更済み表示だったため、今回触らず差分を維持した。
+
+---
+
+## 追補5（2026-07-29・実機フィードバック第4弾: 神輿中央配置・hardのガイド非表示）
+
+### 修正指示
+
+**A. 神輿を画面中央へ**
+- 現状 `cx = 108 + state.progress * 74` で左寄り。左右どちらの画面半分をタップすべきか直感的でない。
+- 神輿（担ぎ手含む一団）の水平中心を**canvas中央（x=195）固定**に変更。上下の担ぎ揺れ・傾きleanは維持。前進感は背景スクロール（既存）が担う。
+- 鳥の着地位置・紙吹雪など他の描画との重なりに崩れが出ないよう追随調整してよい。
+
+**B. むずかしいモードは傾きガイドを消す**
+- canvas上部の「右が下がり気味／左が下がり気味」表示（現560行付近）を**hardモードでは描画しない**（easyは現状維持）。
+- 下部の静的ガイド「⬇下がった側をタップ！」は方向情報を含まないため両モード維持でよい。
+
+### 合格条件
+1. `node tmp/test_game.mjs` exit 0
+2. easy 100msボット: finished=true・50〜95秒（バランス非破壊の確認）
+3. hard スマートボット(?mode=hard): finished=true・50〜130秒
+4. 実装報告に「神輿一団の描画x中心がcanvas中央になったこと」「hardで下がり気味表示が消えeasyで残ること」の確認方法を記載（そちらでブラウザ実測不可なら未検証と明記可=検収者がスクリーンショット実測）
+
+### 禁止事項
+- 物理定数・モード仕様・収めフェーズ等の挙動変更（描画位置とガイド表示条件のみ）
+- tmp/notap_probe.html・tmp/game_e2e_claude.html・tmp/hard_probe.html・douga.html・GAS・index.html の変更、git commit/push、外部リソース参照
+
+## 追補5 実装報告（2026-07-29・Codex）
+- 実装内容: `game.html` の `drawMikoshi()` で神輿一団の描画中心 `cx` を `W / 2` に変更し、canvas幅390pxの中央 x=195 固定にした。上下の担ぎ揺れ `cy`、傾き `theta`、担ぎ手の `lean` は維持した。
+- 実装内容: canvas上部の「右が下がり気味／左が下がり気味」描画を `state.mode !== 'hard'` の場合だけ実行する条件にした。hardでは非表示、easyでは従来どおり表示される。下部の静的ガイド「⬇下がった側をタップ！」は変更していない。
+- 検査更新: `tmp/test_game.mjs` に、神輿中心が `W / 2` であること、hard向け非表示条件があること、下部静的ガイドが残っていることの静的検査を追加した。
+- 静的検査: `node --check tmp/test_game.mjs` は exit 0。`node tmp/test_game.mjs` は exit 0、出力は `OK: game.html / index.html / douga.html checks passed`。
+- ブラウザ実測: ローカルHTTPサーバーと Chrome headless `--dump-dom --virtual-time-budget=160000` で `tmp/game_autoplay_e2e.html` と `?mode=hard` を実行したが、どちらも `E2E_RESULT` がDOMに出力されなかったため未検証。easy 100msボットと hardスマートボットの finished/elapsedSec は検収者が実測する。
+- 確認方法: スクリーンショット実測では、canvas幅390pxの中央 x=195 上に神輿本体と担ぎ手一団の水平中心があることを確認する。easy開始後は上部に「右が下がり気味／左が下がり気味」が表示され、hard開始後は同表示が消え、左上の「むずかしい」表示と下部静的ガイドだけが残ることを確認する。
+- 禁止事項確認: 物理定数、モード仕様、収めフェーズ処理は変更していない。`tmp/notap_probe.html`、`tmp/game_e2e_claude.html`、`tmp/hard_probe.html`、`douga.html`、GAS、`index.html` は変更していない。git commit/push と外部リソース参照追加は実行していない。
