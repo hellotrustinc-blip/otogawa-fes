@@ -30,6 +30,9 @@
   .progress-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.78rem;color:#5a4338}
   .bar{height:14px;background:#e6d8bf;border:1px solid rgba(26,20,16,.15);border-radius:999px;overflow:hidden;position:relative}
   .bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:999px;transition:width .12s linear}
+  .osame-row{display:none;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.78rem;color:#5a4338}
+  .osame-row.show{display:grid}
+  .osame-row .bar i{background:linear-gradient(90deg,var(--navy),var(--gold))}
   .status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#684437}
   .sound{border:0;border-radius:999px;background:var(--navy);color:#fff;min-width:42px;height:34px;font-size:1rem;cursor:pointer}
   .stage-wrap{position:relative;width:100%;aspect-ratio:9/16;min-height:560px;max-height:720px;background:#d9edf1;border:2px solid rgba(26,20,16,.18);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);touch-action:manipulation;user-select:none}
@@ -37,6 +40,7 @@
   .guide{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;justify-content:center;min-height:42px;padding:8px 12px;border-radius:8px;background:rgba(26,20,16,.78);color:#fff;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;letter-spacing:.04em;text-align:center;pointer-events:none}
   .callout{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.7);opacity:0;color:#fff;background:rgba(178,58,46,.9);border:2px solid #f7f1e6;border-radius:8px;padding:8px 14px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:700;box-shadow:0 8px 18px rgba(0,0,0,.2);transition:opacity .18s,transform .18s;pointer-events:none}
   .callout.show{opacity:1;transform:translate(-50%,-70%) scale(1)}
+  .callout.ikuzo{font-size:2.05rem;padding:10px 18px;background:rgba(36,59,83,.92);border-color:#fff1b8}
   .finish{position:absolute;inset:0;display:grid;place-items:center;background:rgba(247,241,230,.88);padding:18px;text-align:center}
   .finish[hidden]{display:none}
   .finish-card{background:#fff;border:2px solid rgba(178,58,46,.2);border-radius:8px;padding:22px 18px;box-shadow:var(--shadow);width:min(100%,330px)}
@@ -50,6 +54,9 @@
   .start-panel ul{display:grid;gap:10px;margin:0;padding:0;list-style:none;font-size:1.04rem;line-height:1.55;font-weight:700;text-align:left}
   .start-panel li{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.13)}
   .start-action{margin:0;font-size:1.2rem;font-weight:800;color:#fff1b8}
+  .mode-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mode-btn{border:0;border-radius:8px;background:#fff1b8;color:#5a261d;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:800;font-size:1rem;padding:12px 8px;cursor:pointer}
+  .mode-btn.hard{background:#243b53;color:#fff}
   footer{padding:0 14px 16px;text-align:center;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#6d5b4a}
   @media(max-width:420px){
     header{padding:0 10px}
@@ -64,12 +71,13 @@
 <div class="shell">
   <header>
     <div class="brand">おみこしわっしょい</div>
-    <a class="home" href="./index.html">トップへ戻る</a>
+    <a class="home" href="https://sites.google.com/view/otogawafes/%E3%83%9B%E3%83%BC%E3%83%A0">サイトへ戻る</a>
   </header>
   <main>
     <section class="game" aria-label="おみこしわっしょいゲーム">
       <div class="hud">
         <div class="progress-row"><span>スタート</span><div class="bar" aria-label="進捗"><i id="progressFill"></i></div><span>⛩ 八坂神社</span></div>
+        <div id="osameRow" class="osame-row"><span>収め</span><div class="bar" aria-label="収めゲージ"><i id="osameFill"></i></div><span>台へ</span></div>
         <div class="status"><span id="statusText">下がった側をタップして支えます</span><button id="soundBtn" class="sound" type="button" aria-label="音を切り替え">🔇</button></div>
       </div>
       <div id="stage" class="stage-wrap">
@@ -87,10 +95,15 @@
             <h1>おみこしわっしょい</h1>
             <ul>
               <li>おみこしは自動で八坂神社へ進みます</li>
+              <li>あなたは小頭。神輿を落とさずに八坂神社まで導け！</li>
               <li>傾いて下がった側の画面半分をタップして支えます</li>
               <li>落としても少し戻るだけ。ゲームオーバーはありません</li>
             </ul>
-            <p class="start-action">タップでスタート</p>
+            <div class="mode-actions" aria-label="モードをえらぶ">
+              <button id="modeEasy" class="mode-btn" type="button">かんたん</button>
+              <button id="modeHard" class="mode-btn hard" type="button">むずかしい</button>
+            </div>
+            <p class="start-action">モードをえらぶ</p>
           </div>
         </div>
         <div class="guide">⬇下がった側をタップ！</div>
@@ -105,6 +118,8 @@
   const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
   const fill = document.getElementById('progressFill');
+  const osameRow = document.getElementById('osameRow');
+  const osameFill = document.getElementById('osameFill');
   const callout = document.getElementById('callout');
   const finish = document.getElementById('finish');
   const startOverlay = document.getElementById('startOverlay');
@@ -112,12 +127,15 @@
   const statusText = document.getElementById('statusText');
   const soundBtn = document.getElementById('soundBtn');
   const againBtn = document.getElementById('againBtn');
+  const modeEasy = document.getElementById('modeEasy');
+  const modeHard = document.getElementById('modeHard');
 
   const W = 390;
   const H = 690;
   const limit = 0.22;
   const tapImpulse = 0.04;
   const targetSeconds = 48;
+  const birdSides = ['left', 'right'];
   let state;
   let last = performance.now();
   let audioCtx = null;
@@ -125,13 +143,21 @@
   let calloutTimer = 0;
   let finishedAt = 0;
 
-  function reset(started = false) {
+  function reset(started = false, mode = 'easy') {
     state = {
       theta: 0.05,
       omega: 0,
       progress: 0,
       drops: 0,
       elapsed: 0,
+      phase: started ? 'play' : 'play',
+      mode,
+      osame: 0,
+      bird: null,
+      birdTimer: 0,
+      birdEventsLeft: 0,
+      nextBirdAt: Infinity,
+      osameEntered: false,
       lastTapElapsed: -10,
       started,
       finished: false,
@@ -143,15 +169,21 @@
     callout.classList.remove('show');
     statusText.textContent = started ? '下がった側をタップして支えます' : '遊び方を読んでタップでスタート';
     fill.style.width = '0%';
+    osameFill.style.width = '0%';
+    osameRow.classList.remove('show');
     last = performance.now();
   }
 
-  function startGame() {
+  function startGame(mode = state.mode || 'easy', announce = true) {
     if (state.started) return;
+    state.mode = mode === 'hard' ? 'hard' : 'easy';
+    state.birdEventsLeft = state.mode === 'hard' ? Math.floor(rand(1, 4)) : 0;
+    state.nextBirdAt = state.birdEventsLeft ? rand(12, 28) : Infinity;
     state.started = true;
     startOverlay.hidden = true;
-    statusText.textContent = '下がった側をタップして支えます';
+    statusText.textContent = state.mode === 'hard' ? 'むずかしい：傾き過ぎてから支えます' : '下がった側をタップして支えます';
     last = performance.now();
+    if (announce) ikuzo();
   }
 
   function rand(min, max) {
@@ -184,14 +216,34 @@
 
   function popCallout(text) {
     callout.textContent = text;
+    callout.classList.toggle('ikuzo', text === 'イクゾー！');
     callout.classList.add('show');
     clearTimeout(calloutTimer);
-    calloutTimer = setTimeout(() => callout.classList.remove('show'), 720);
+    calloutTimer = setTimeout(() => {
+      callout.classList.remove('show');
+      callout.classList.remove('ikuzo');
+    }, text === 'イクゾー！' ? 1500 : text === 'しっかりしろよー' ? 1200 : 720);
+  }
+
+  function ikuzo() {
+    popCallout('イクゾー！');
+    playTone(196, 0.16, 'sawtooth', 0.06);
+    setTimeout(() => playTone(294, 0.18, 'sawtooth', 0.05), 120);
   }
 
   function applyTapDir(dir) {
+    if (state.phase === 'osame') {
+      mash();
+      return;
+    }
     state.lastTapElapsed = state.elapsed;
     const correctSide = (state.theta < 0 && dir > 0) || (state.theta > 0 && dir < 0);
+    if (state.mode === 'hard' && correctSide && Math.abs(state.theta) < 0.06) {
+      state.theta = -Math.sign(state.theta || -dir) * rand(0.035, 0.075);
+      state.omega = state.theta * 2.2;
+      taiko();
+      return;
+    }
     if (Math.abs(state.theta) < 0.005) {
       state.omega *= 0.05;
     } else if (correctSide) {
@@ -211,7 +263,7 @@
 
   function tapSide(x, forceTap = false) {
     if (!state.started) {
-      startGame();
+      startGame('easy');
       if (!forceTap) return;
     }
     if (state.finished) return;
@@ -221,6 +273,7 @@
   }
 
   stage.addEventListener('pointerdown', (ev) => {
+    if (!state.started && startOverlay.contains(ev.target)) return;
     ev.preventDefault();
     tapSide(ev.clientX);
   });
@@ -239,13 +292,25 @@
   });
   againBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
-    reset(true);
+    const mode = state.mode;
+    reset(false, mode);
+    startGame(mode);
+  });
+  modeEasy.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+  modeHard.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+  modeEasy.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    startGame('easy');
+  });
+  modeHard.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    startGame('hard');
   });
 
   startOverlay.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
-      startGame();
+      startGame('easy');
     }
   });
 
@@ -265,31 +330,77 @@
     state.omega = 0;
     statusText.textContent = 'おっとっと！立て直しました';
     popCallout('おっとっと！');
+    setTimeout(() => {
+      if (state.started && !state.finished) popCallout('しっかりしろよー');
+    }, 620);
     taiko();
+  }
+
+  function enterOsame() {
+    if (state.phase !== 'play') return;
+    state.phase = 'osame';
+    state.osameEntered = true;
+    state.progress = 1;
+    state.theta = 0;
+    state.omega = 0;
+    osameRow.classList.add('show');
+    statusText.textContent = '神輿を収めろ！連打で担ぎ手を押さえます';
+    popCallout('神輿を収めろ！');
+  }
+
+  function mash() {
+    if (!state.started || state.phase !== 'osame' || state.finished) return;
+    state.osame = Math.min(1, state.osame + 0.023);
+    osameFill.style.width = `${(state.osame * 100).toFixed(2)}%`;
+    state.lastTapElapsed = state.elapsed;
+    taiko();
+    if (Math.random() < 0.12) voice();
+    if (state.osame >= 1) finishGame();
   }
 
   function finishGame() {
     state.finished = true;
+    state.phase = 'done';
     finishedAt = state.elapsed;
     addConfetti();
     timeText.textContent = `所要タイム ${finishedAt.toFixed(1)}秒`;
     finish.hidden = false;
-    statusText.textContent = `奉納完了 落下 ${state.drops}回`;
+    statusText.textContent = state.drops === 0 ? '完璧な差配！特別奉納です' : `奉納完了 後戻り ${state.drops}回`;
     popCallout('奉納完了！');
     voice();
   }
 
   function update(dt) {
     if (!state.started) return;
+    state.elapsed += dt;
+    if (state.phase === 'osame' && !state.finished) {
+      state.osame = Math.max(0, state.osame - dt * 0.03);
+      osameFill.style.width = `${(state.osame * 100).toFixed(2)}%`;
+      if (Math.random() < dt * 0.5) popCallout('神輿を収めろ！');
+    }
     if (state.finished) {
       state.confetti.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.a += dt * 6; if (p.y > H + 20) p.y = rand(-180, -20); });
       return;
     }
-    state.elapsed += dt;
+    if (state.phase !== 'play') return;
     const difficulty = Math.min(1.6, 1 + state.progress * 0.5);
     const drift = Math.sin(state.elapsed * 1.7 + state.wobbleSeed) * 0.04 + Math.sin(state.elapsed * 3.1) * 0.02;
-    const randomKick = (Math.random() - 0.5) * 0.003 * difficulty;
-    state.omega += (state.theta * 6 * difficulty + drift * 0.02 + randomKick) * dt;
+    const hard = state.mode === 'hard';
+    const randomKick = (Math.random() - 0.5) * (hard ? 0.006 : 0.003) * difficulty;
+    if (hard && state.birdEventsLeft > 0 && state.elapsed >= state.nextBirdAt && !state.bird) {
+      forceBird(birdSides[Math.floor(rand(0, 2))]);
+    }
+    if (state.bird) {
+      state.birdTimer -= dt;
+      if (state.birdTimer <= 0) {
+        state.bird = null;
+      } else {
+        const birdDir = state.bird === 'left' ? -1 : 1;
+        state.omega += birdDir * (0.075 + state.progress * 0.03) * dt;
+      }
+    }
+    const hardDriftBoost = hard ? 1.45 : 1;
+    state.omega += (state.theta * 6 * difficulty * hardDriftBoost + drift * 0.02 * hardDriftBoost + randomKick) * dt;
     state.omega *= Math.pow(0.97, dt * 60);
     state.theta += state.omega * dt;
     state.progress += dt / targetSeconds;
@@ -306,7 +417,7 @@
         failReset();
       }
     }
-    if (state.progress >= 1) finishGame();
+    if (state.progress >= 1) enterOsame();
   }
 
   function block(x, y, w, h, c) {
@@ -373,11 +484,31 @@
     block(-60, 14, 120, 8, '#243b53');
     ctx.restore();
     const lean = Math.sin(state.theta) * 34;
-    drawCarrier(cx - 64, cy + 38 - lean * .4, '#243b53');
-    drawCarrier(cx + 64, cy + 38 + lean * .4, '#8f2c22');
+    drawCarrier(cx - 86, cy + 43 - lean * .4, '#243b53', 0);
+    drawCarrier(cx - 62, cy + 37 - lean * .35, '#8f2c22', 1);
+    drawCarrier(cx - 38, cy + 44 - lean * .3, '#b23a2e', 2);
+    drawCarrier(cx - 14, cy + 38 - lean * .25, '#6353a6', 3);
+    drawCarrier(cx + 14, cy + 38 + lean * .25, '#243b53', 4);
+    drawCarrier(cx + 38, cy + 44 + lean * .3, '#8f2c22', 5);
+    drawCarrier(cx + 62, cy + 37 + lean * .35, '#b23a2e', 6);
+    drawCarrier(cx + 86, cy + 43 + lean * .4, '#6353a6', 7);
+    if (state.bird) drawBird(state.bird, cy - 110);
   }
 
-  function drawCarrier(x, y, c) {
+  function drawBird(side, y) {
+    const x = side === 'left' ? 54 : W - 54;
+    ctx.fillStyle = '#1a1410';
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    block(x - 19, y - 5, 17, 4, '#1a1410');
+    block(x + 2, y - 5, 17, 4, '#1a1410');
+    block(x + (side === 'left' ? -5 : 3), y + 6, 8, 10, '#1a1410');
+  }
+
+  function drawCarrier(x, y, c, i = 0) {
+    const march = Math.sin(state.elapsed * 12 + i) * 3;
+    y += march;
     block(x - 7, y - 30, 14, 14, '#d79c73');
     block(x - 10, y - 16, 20, 26, c);
     block(x - 15, y - 2, 9, 28, '#333');
@@ -397,19 +528,43 @@
     });
   }
 
+  function drawOsameStage() {
+    if (state.phase !== 'osame' && state.phase !== 'done') return;
+    block(70, 432, 82, 22, '#6c4d3c');
+    block(84, 404, 54, 28, '#8f2c22');
+    block(238, 432, 82, 22, '#6c4d3c');
+    block(252, 404, 54, 28, '#243b53');
+    ctx.fillStyle = '#8f2c22';
+    ctx.font = '22px serif';
+    ctx.fillText('神輿を収めろ！', 116, 126);
+    if (state.phase === 'osame') {
+      ctx.fillStyle = 'rgba(247,241,230,.88)';
+      ctx.fillRect(68, 142, 254, 22);
+      block(72, 146, 246 * state.osame, 14, '#c99a2e');
+    }
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
     drawMikoshi();
+    drawOsameStage();
     if (state.finished) drawConfetti();
     ctx.fillStyle = 'rgba(247,241,230,.82)';
     ctx.fillRect(10, 12, 118, 28);
     ctx.fillStyle = '#5a4338';
     ctx.font = '14px sans-serif';
     ctx.fillText(`落下 ${state.drops}回`, 22, 31);
-    if (!state.finished) {
+    if (!state.finished && state.phase === 'play') {
       ctx.fillStyle = Math.abs(state.theta) > limit * .72 ? '#b23a2e' : '#243b53';
       ctx.fillText(state.theta > 0 ? '右が下がり気味' : '左が下がり気味', 215, 31);
+      if (state.mode === 'hard') {
+        ctx.fillStyle = '#8f2c22';
+        ctx.fillText('むずかしい', 22, 56);
+      }
+    } else if (state.phase === 'osame') {
+      ctx.fillStyle = '#243b53';
+      ctx.fillText('連打で収める', 226, 31);
     }
   }
 
@@ -426,12 +581,24 @@
   }
 
   window.__omikoshiDebug = {
-    getState: () => ({ theta: state.theta, progress: state.progress, finished: state.finished, drops: state.drops }),
-    forceGoal: () => { startGame(); state.progress = 1; finishGame(); draw(); },
-    tapLeft: () => { startGame(); if (!state.finished) applyTapDir(1); },
-    tapRight: () => { startGame(); if (!state.finished) applyTapDir(-1); },
-    start: startGame
+    getState: () => ({ theta: state.theta, progress: state.progress, finished: state.finished, drops: state.drops, phase: state.phase, osame: state.osame, mode: state.mode, bird: state.bird }),
+    forceGoal: () => { startGame(state.mode, false); state.progress = 1; enterOsame(); state.osame = 1; finishGame(); draw(); },
+    tapLeft: () => { startGame(state.mode, false); if (!state.finished) applyTapDir(1); },
+    tapRight: () => { startGame(state.mode, false); if (!state.finished) applyTapDir(-1); },
+    start: (mode = 'easy') => { startGame(mode); },
+    forceBird: (side) => { forceBird(side); },
+    mash
   };
+
+  function forceBird(side) {
+    if (state.mode !== 'hard' || state.finished || state.phase !== 'play') return;
+    state.bird = side === 'right' ? 'right' : 'left';
+    state.birdTimer = 4;
+    state.birdEventsLeft = Math.max(0, state.birdEventsLeft - 1);
+    state.nextBirdAt = state.birdEventsLeft ? state.elapsed + rand(16, 30) : Infinity;
+    popCallout('トリだ');
+    voice();
+  }
 
   reset(false);
   requestAnimationFrame(loop);

@@ -25,11 +25,13 @@
     const startedAt = performance.now();
     const params = new URLSearchParams(location.search);
     const intervalMs = Number(params.get('interval') || 100);
+    const mode = params.get('mode') === 'hard' ? 'hard' : 'easy';
     let ticks = 0;
     let timer = 0;
+    let reachedOsame = false;
     try {
       const debug = frame.contentWindow.__omikoshiDebug;
-      if (!debug || typeof debug.start !== 'function') {
+      if (!debug || typeof debug.start !== 'function' || typeof debug.mash !== 'function') {
         finish({ finished: false, elapsedSec: 0, drops: 0, error: 'debug start() not found' });
         return;
       }
@@ -37,12 +39,12 @@
       const overlay = doc.getElementById('startOverlay');
       const overlayText = overlay ? overlay.innerText.replace(/\s+/g, ' ') : '';
       const overlayVisible = !!overlay && !overlay.hidden;
-      if (!overlayVisible || !overlayText.includes('八坂神社') || !overlayText.includes('下がった側') || !overlayText.includes('ゲームオーバー')) {
+      if (!overlayVisible || !overlayText.includes('八坂神社') || !overlayText.includes('下がった側') || !overlayText.includes('ゲームオーバー') || !overlayText.includes('モード')) {
         finish({ finished: false, elapsedSec: 0, drops: 0, error: 'start overlay text not visible' });
         return;
       }
       const initialProgress = debug.getState().progress;
-      debug.start();
+      debug.start(mode);
       if (!overlay.hidden) {
         finish({ finished: false, elapsedSec: 0, drops: 0, error: 'start overlay did not hide' });
         return;
@@ -51,6 +53,7 @@
         try {
           const state = debug.getState();
           ticks += 1;
+          if (state.phase === 'osame') reachedOsame = true;
           if (ticks === 8 && state.progress <= initialProgress) {
             clearInterval(timer);
             finish({ finished: false, elapsedSec: 0, drops: state.drops, error: 'game did not start moving' });
@@ -62,7 +65,10 @@
               finished: true,
               elapsedSec: Number(((performance.now() - startedAt) / 1000).toFixed(1)),
               drops: state.drops,
-              intervalMs
+              intervalMs,
+              mode,
+              reachedOsame,
+              phase: state.phase
             });
             return;
           }
@@ -72,10 +78,19 @@
               finished: false,
               elapsedSec: Number(((performance.now() - startedAt) / 1000).toFixed(1)),
               drops: state.drops,
-              intervalMs
+              intervalMs,
+              mode,
+              reachedOsame,
+              phase: state.phase,
+              osame: state.osame
             });
             return;
           }
+          if (state.phase === 'osame') {
+            debug.mash();
+            return;
+          }
+          if (mode === 'hard' && Math.abs(state.theta) <= 0.06) return;
           if (state.theta < 0) {
             debug.tapLeft();
           } else {

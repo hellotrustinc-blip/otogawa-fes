@@ -138,3 +138,128 @@
 ]
 ```
 - 禁止事項確認: `tmp/notap_probe.html`、`tmp/game_e2e_claude.html`、`douga.html`、GAS、`index.html` は今回変更していない。git commit/push、外部リソース参照は行っていない。
+
+---
+
+## 追補3（2026-07-28・実機フィードバック第2弾: 小頭設定・収めコーナー・担ぎ手増員・イクゾー）
+
+発注元の実機プレイ評価「よくなってきました」を受けた機能追加。対象=game.html（＋検査系の追随更新）。
+
+### 追加仕様
+
+**A. プレイヤー設定=小頭（こがしら）**
+- スタートオーバーレイに役割文を追加: 「あなたは小頭。神輿を落とさずに八坂神社まで導け！」
+- ゲームオーバーなしの思想は維持（落下しても続行）。クリア時、落下0回なら「完璧な差配！」等の特別賞賛を表示（落下ありは従来どおり回数表示）。
+
+**B. 収めコーナー（ゴール後の連打フェーズ）**
+- progress が 1 に到達したら即終了せず「収めフェーズ」へ移行。
+- 画面に大きく「神輿を収めろ！」の合図表示。担ぎ手はまだ担ぎたがって暴れる（神輿が揺れる演出）。
+- プレイヤーは画面を**連打**して担ぎ手を押さえつけ、収めゲージを満たす。ゲージはバー表示し、放置すると自然減少（担ぎ手の抵抗）。
+- 数値目安: 秒4回連打（250ms間隔）でも約10〜15秒で満タンにできる減衰・増分設計（子供のゆっくり連打で必ず収まる）。無連打では満タンにならないこと。
+- ゲージ満タン→神輿が**2つの台（馬・木の台を左右に2基描画）**の上へ降ろされる着地演出→紙吹雪＋「奉納完了！わっしょい！」＋所要タイム＋「もう一回」（従来のクリア演出へ接続）。
+- 収めフェーズ中の左右どちらのタップも連打としてカウント（バランス操作は終了）。
+
+**C. 担ぎ手の増員**
+- 担ぎ手を**左右4人ずつ計8人**に増やす（ドット絵。前後の奥行き表現や色違いは任意）。
+
+**D. 開始の掛け声「イクゾー！」**
+- スタート（タップでスタート直後・「もう一回」直後の両方）に「イクゾー！」を大きくポップ表示（DOM要素のcallout系で・**表示は最低1.5秒維持**）。
+- 音ONのときはWebAudio合成の掛け声風の音も鳴らす（音声ファイル不使用）。
+
+**E. デバッグAPI拡張（既存メソッドは挙動維持）**
+- getState() の返り値に `phase`（'play' | 'osame' | 'done'）と `osame`（収めゲージ0〜1）を追加。
+- `mash()` を追加（収めフェーズの連打1回に相当。playフェーズでは何もしない）。
+- forceGoal() は従来どおり最終クリア演出まで直行（UI検収用）。
+
+### 検査系の追随（Codexが更新してよいもの）
+- tmp/game_autoplay_e2e.html: playフェーズは従来どおり正しい側タップ、osameフェーズに入ったら同じinterval間隔で mash() を連打し、finished まで到達する動作へ更新。E2E_RESULT に phase到達情報（reachedOsame）を追加。
+- tmp/test_game.mjs: 必要なら検査追加（title は変更しないこと）。
+
+### 追補3の合格条件（ヘッドレスChrome実測。検収者が独立再実行する）
+1. `node tmp/test_game.mjs` exit 0
+2. **100msボット**（tmp/game_autoplay_e2e.html）: reachedOsame=true かつ finished=true かつ 合計50〜95秒
+3. **250msゆっくりボット**（?interval=250）: finished=true かつ 合計150秒以内
+4. **無操作**（tmp/notap_probe.html・変更禁止）: 200秒時点で finished=false かつ progress≥1（=収めフェーズには到達するが連打なしでは収まらない）
+5. 実測JSON3件を「追補3実装報告」として本brief末尾に追記（Codex環境でブラウザ実測が動かない場合は、その事実と未検証である旨を明記すれば可=検収者が実測する）
+
+### 禁止事項
+- tmp/notap_probe.html・tmp/game_e2e_claude.html・douga.html・GAS・index.html の変更、git commit/push、外部リソース参照
+
+## 追補3 実装報告（2026-07-28・Codex）
+- 実装内容: `game.html` に小頭の役割説明を追加し、開始時/再開時にDOM calloutで「イクゾー！」を1.5秒以上表示するようにした。音ON時は既存WebAudio合成音で掛け声風の音も鳴らす。
+- 実装内容: `progress >= 1` で即終了せず、`phase='osame'` の収めフェーズへ移行するようにした。収めフェーズでは「神輿を収めろ！」表示、収めゲージ、左右2基の台描画、連打で `osame` が増え、放置で自然減衰する。ゲージ満タンで `phase='done'` となり、従来の奉納完了演出へ接続する。
+- 実装内容: 担ぎ手描画を左右4人ずつ、合計8人に増員した。
+- 実装内容: クリア時に落下0回なら「完璧な差配！特別奉納です」、落下ありなら後戻り回数を表示するようにした。ゲームオーバーなしの思想は維持した。
+- 実装内容: デバッグAPIを拡張し、`getState()` に `phase` と `osame` を追加、`mash()` を追加した。`forceGoal()` は収めフェーズを経由して最終クリア状態まで進める。
+- 検査更新: `tmp/game_autoplay_e2e.html` はplayフェーズで従来どおり下がった側を補正し、osameフェーズ到達後は同じintervalで `mash()` を連打するよう更新した。`E2E_RESULT` には `reachedOsame` と `phase` を追加した。
+- 検査更新: `tmp/test_game.mjs` に小頭説明、収めフェーズ表示、`phase`/`osame`/`mash()`、イクゾー表示、禁止ファイル差分なしの静的検査を追加した。
+- 静的検査: `node --check tmp/test_game.mjs` は exit 0。
+- 静的検査: `node tmp/test_game.mjs` は exit 0。出力は `OK: game.html / index.html / douga.html checks passed`。
+- ブラウザ実測: このCodex環境では Chrome headless `--dump-dom --virtual-time-budget=120000` で `tmp/game_autoplay_e2e.html` と `tmp/game_autoplay_e2e.html?interval=250` を開いたが、どちらも `E2E_RESULT` がDOMに出力されなかったため未検証。結果は `NO_E2E_RESULT http://127.0.0.1:8137/tmp/game_autoplay_e2e.html` / `NO_E2E_RESULT http://127.0.0.1:8137/tmp/game_autoplay_e2e.html?interval=250`。
+- 禁止事項確認: `git diff --name-only` の対象は `briefs/brief_15_omikoshi_game.md`、`game.html`、`tmp/game_autoplay_e2e.html`、`tmp/test_game.mjs` のみ。`tmp/notap_probe.html`、`tmp/game_e2e_claude.html`、`douga.html`、GAS、`index.html` は変更していない。git commit/push と外部リソース参照は実行していない。
+
+---
+
+## 追補4（2026-07-28・実機フィードバック第3弾: 公式サイト戻りリンク・難易度2モード・鳥イベント・観客の声＋イクゾー欠陥修正）
+
+### 検収で発見した欠陥の修正（最優先）
+- **イクゾー未発火**: ikuzo() が「もう一回」とdebug start()からしか呼ばれず、通常の初回開始経路（オーバーレイタップ→startGame）で発火しない。**すべての開始経路**（下記モード選択ボタン・もう一回・debug start）で開始直後に同期発火させること。
+
+### 追加仕様
+
+**A. 戻りリンクの変更**
+- 「トップへ戻る」を公式サイト `https://sites.google.com/view/otogawafes/%E3%83%9B%E3%83%BC%E3%83%A0` へ変更（douga.htmlの戻りリンクと同一URL・表記は「サイトへ戻る」等）。./index.html への戻りは廃止してよい。
+- ※外部参照禁止ルールの例外はこの<a>ナビリンク1箇所のみ。script/img/audio等の外部参照は引き続き禁止。
+
+**B. モード選択（スタートオーバーレイ改修）**
+- オーバーレイに2ボタン: 「かんたん」(id="modeEasy") と「むずかしい」(id="modeHard")。※idは検収ハーネスが使うため固定。
+- ボタン押下でそのモードで開始（＋イクゾー！）。「もう一回」=同モード即再開。オーバーレイへ戻る小リンク「モードをえらぶ」を任意で設置可。
+- かんたん=現行の調整のまま（追補2の実測合格バランスを変えない）。
+
+**C. むずかしいモード（2つの新メカニクス）**
+1. **押しすぎ逆傾き（過補正）**: タップ補正が過補正気味になる。特に|θ|が小さいときに正しい側をタップすると、θが0を乗り越えて反対側へ傾く（連打しすぎると左右にブレる）。θが大きいときの立て直し効果は残す（クリア不能にしない）。
+2. **鳥イベント**: 道中ランダムに1〜3回、神輿の片側の端に鳥（ドット絵・カラス風）が舞い降り、乗っている間（4〜6秒）その側へ傾くバイアストルクがかかり傾き方が急になる。着地時に「トリだ！」callout。時間経過で飛び去る。
+- 外乱の基礎値もかんたんより2〜3割強めてよい。ゲームオーバーなしは維持。
+
+**D. 観客の声（両モード共通）**
+- 落下（failReset）のたびに観客側から「しっかりしろよー！」の吹き出し/ポップを表示（神輿のcalloutとは別要素・最低1秒表示・音ONなら効果音も）。「おっとっと！」表示との共存可。
+
+**E. デバッグAPI拡張（既存挙動維持）**
+- start(mode) — 'easy'（省略時）| 'hard' で開始。
+- getState() に mode・bird（乗っていなければ null、乗っていれば 'left' | 'right'）を追加。
+- forceBird(side) — 'left' | 'right' の鳥イベントを即発生（hardモード中のみ有効でよい）。
+
+**F. 検査系の追随（Codexが更新するもの）**
+- tmp/test_game.mjs: 戻りリンク検査を Sites URL へ変更／modeEasy・modeHardボタン存在／「しっかりしろよー」「トリだ」文字列存在を追加。外部参照禁止検査は<a>ナビリンクを除外する形に調整。
+- tmp/game_autoplay_e2e.html: `?mode=hard` 対応（start('hard')で開始）。botはスマート戦略へ更新=「|θ|>0.06のときだけ正しい側をタップ・osameフェーズはinterval間隔でmash()連打」（hardの過補正で連打が逆効果になるため）。E2E_RESULTに mode を追加。
+
+### 追補4の合格条件（検収者が独立実測）
+1. `node tmp/test_game.mjs` exit 0
+2. easy 100msボット: reachedOsame=true・finished=true・50〜95秒
+3. easy 250msボット: finished=true・150秒以内
+4. 無操作（tmp/notap_probe.html・変更禁止・easyで動く）: 200秒時点 finished=false かつ progress≥1
+5. hard スマートボット(100ms): finished=true・50〜130秒
+6. 過補正の機械証明(hard): |θ|<0.05 のとき正しい側タップ→同期でθが反対符号になること
+7. 鳥の機械証明(hard): forceBird('left')後、無タップ1.5秒でθが鳥側（負方向）へ変化し、getState().bird==='left' が読めること
+8. しっかりしろよー: 開始後無タップ10秒以内の自然落下でDOM上に「しっかりしろよー」が出現
+9. イクゾー: モードボタンクリック直後の同期チェックで calloutが「イクゾー！」（easy/hard両方）
+10. 実装報告を本brief末尾に「追補4実装報告」として追記（そちらの環境でブラウザ実測不可なら未検証と明記すれば可＝検収者が実測）
+
+### 禁止事項
+- tmp/notap_probe.html・tmp/game_e2e_claude.html・douga.html・GAS・index.html の変更、git commit/push、外部リソース参照（上記A の<a>リンク1箇所のみ例外）
+
+## 追補4実装報告（2026-07-28・Codex）
+- 実装内容: `game.html` の戻りリンクを公式サイト `https://sites.google.com/view/otogawafes/%E3%83%9B%E3%83%BC%E3%83%A0` に変更し、表示を「サイトへ戻る」に変更した。この `<a>` 1箇所以外の外部 `script/img/audio/source/iframe/link/fetch` 参照は追加していない。
+- 実装内容: スタートオーバーレイに `id="modeEasy"` の「かんたん」と `id="modeHard"` の「むずかしい」ボタンを追加した。かんたんモードは既存の `targetSeconds=48`、`difficulty=Math.min(1.6, 1 + progress * 0.5)`、`limit=0.22`、`tapImpulse=0.04` の現行バランスを維持した。
+- 欠陥修正: 通常の初回開始、モードボタン開始、もう一回、debug `start(mode)` の各開始経路で `イクゾー！` callout とWebAudio合成音（音ON時）が同期発火するようにした。
+- 実装内容: むずかしいモードでは、正しい側でも `|theta| < 0.06` で押すと反対側へ傾く過補正を追加した。ゲームオーバーなし、落下時の5%後退は維持した。
+- 実装内容: むずかしいモードに鳥イベントを追加した。`forceBird('left'|'right')` で即時発生し、`getState().bird` に `'left'|'right'|null` を返す。鳥が乗っている間は該当側へ傾くバイアストルクを掛け、DOM callout に「トリだ」を表示する。
+- 実装内容: 落下 `failReset()` ごとに観客の声として「しっかりしろよー」を別calloutで表示し、音ON時は既存WebAudio合成音を鳴らす。
+- 実装内容: debug API を `start(mode)`, `getState().mode`, `getState().bird`, `forceBird(side)` 対応に拡張した。既存の `getState`, `forceGoal`, `tapLeft`, `tapRight`, `mash` は維持した。
+- 検査更新: `tmp/test_game.mjs` に公式サイト戻りリンク、`modeEasy`/`modeHard`、`mode`/`bird`/`forceBird`、観客声、鳥、許可リンク例外の検査を追加した。
+- 検査更新: `tmp/game_autoplay_e2e.html` を `?mode=hard` に対応させた。play中は `|theta| > 0.06` のときだけ正しい側をタップし、osame中は `mash()` を連打する。`E2E_RESULT` に `mode`、`reachedOsame`、`phase` を追加した。
+- 静的検査: `node --check tmp/test_game.mjs` は exit 0。
+- 静的検査: `node tmp/test_game.mjs` は exit 0。出力は `OK: game.html / index.html / douga.html checks passed`。
+- 構文検査: `game.html` 内の inline script を Node で抽出し `new Function(script)` に通して、`OK: inline scripts parse` を確認した。
+- ブラウザ実測: このCodex環境では Chrome headless の `--dump-dom --virtual-time-budget=160000` で `tmp/game_autoplay_e2e.html`、`?interval=250`、`?mode=hard` のいずれも `E2E_RESULT` がDOMに出力されなかったため未検証。`file://` でも `NO_E2E_RESULT_FILE_URL` だった。
+- 禁止事項確認: 今回、`tmp/notap_probe.html`、`douga.html`、GAS関連、`index.html`、git commit/push、外部リソース参照追加（公式サイト `<a>` 1箇所を除く）は実行していない。`tmp/game_e2e_claude.html` は作業開始時点の `git status --short` で既に変更済み表示だったため、今回触らず差分を維持した。

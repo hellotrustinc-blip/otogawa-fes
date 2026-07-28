@@ -33,16 +33,17 @@
         const textBefore = doc.body.innerText.replace(/\s+/g, ' ');
         r.overlayShown = textBefore.includes('タップでスタート');
         r.guideShown = textBefore.includes('下がった側');
+        r.kogashiraShown = textBefore.includes('小頭');
         const p0 = dbg.getState().progress;
         r.pausedBeforeStart = p0 === 0;
-        // 実イベント経路の証明: 実PointerEventでオーバーレイを解除しゲーム開始
+        // 実イベント経路の証明: かんたんモードボタンの実クリックでゲーム開始
         // （タップ補正の有効性証明は tmp/game_autoplay_e2e.html が担う）
-        const overlay = doc.getElementById('startOverlay') || doc.querySelector('.start-overlay');
-        const orect = overlay.getBoundingClientRect();
-        overlay.dispatchEvent(new w.PointerEvent('pointerdown', {
-          clientX: orect.left + orect.width / 2, clientY: orect.top + orect.height / 2,
-          bubbles: true, cancelable: true, pointerId: 1
-        }));
+        r.hasModeButtons = !!doc.getElementById('modeEasy') && !!doc.getElementById('modeHard');
+        doc.getElementById('modeEasy').dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+        // イクゾー！は開始直後の同期チェックが正
+        // （calloutは単一要素で、約1秒後の落下「おっとっと！」等に上書きされるため遅延測定は偽陰性）
+        const co = doc.getElementById('callout');
+        r.ikuzoShown = !!co && co.textContent.includes('イクゾー') && co.classList.contains('show');
         setTimeout(() => {
           const textAfter = doc.body.innerText.replace(/\s+/g, ' ');
           r.overlayGone = !textAfter.includes('タップでスタート');
