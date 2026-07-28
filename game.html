@@ -43,6 +43,13 @@
   .finish h1{margin:0 0 8px;color:var(--red-d);font-size:1.85rem;line-height:1.3;letter-spacing:.04em}
   .finish p{margin:0 0 16px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
   .again{border:0;border-radius:999px;background:var(--gold);color:#2a1e05;font-weight:700;padding:12px 24px;font-size:1rem;cursor:pointer}
+  .start-overlay{position:absolute;inset:0;display:grid;place-items:center;padding:18px;background:rgba(26,20,16,.66);color:#fff;text-align:center;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;z-index:3;cursor:pointer}
+  .start-overlay[hidden]{display:none}
+  .start-panel{width:min(100%,340px);display:grid;gap:14px;padding:20px 16px;border:2px solid rgba(247,241,230,.78);border-radius:8px;background:rgba(178,58,46,.92);box-shadow:0 10px 26px rgba(0,0,0,.22)}
+  .start-panel h1{margin:0;font-size:1.55rem;line-height:1.3;letter-spacing:.04em}
+  .start-panel ul{display:grid;gap:10px;margin:0;padding:0;list-style:none;font-size:1.04rem;line-height:1.55;font-weight:700;text-align:left}
+  .start-panel li{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.13)}
+  .start-action{margin:0;font-size:1.2rem;font-weight:800;color:#fff1b8}
   footer{padding:0 14px 16px;text-align:center;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#6d5b4a}
   @media(max-width:420px){
     header{padding:0 10px}
@@ -75,6 +82,17 @@
             <button id="againBtn" class="again" type="button">もう一回</button>
           </div>
         </div>
+        <div id="startOverlay" class="start-overlay" role="button" tabindex="0" aria-label="タップでスタート">
+          <div class="start-panel">
+            <h1>おみこしわっしょい</h1>
+            <ul>
+              <li>おみこしは自動で八坂神社へ進みます</li>
+              <li>傾いて下がった側の画面半分をタップして支えます</li>
+              <li>落としても少し戻るだけ。ゲームオーバーはありません</li>
+            </ul>
+            <p class="start-action">タップでスタート</p>
+          </div>
+        </div>
         <div class="guide">⬇下がった側をタップ！</div>
       </div>
     </section>
@@ -89,6 +107,7 @@
   const fill = document.getElementById('progressFill');
   const callout = document.getElementById('callout');
   const finish = document.getElementById('finish');
+  const startOverlay = document.getElementById('startOverlay');
   const timeText = document.getElementById('timeText');
   const statusText = document.getElementById('statusText');
   const soundBtn = document.getElementById('soundBtn');
@@ -96,9 +115,9 @@
 
   const W = 390;
   const H = 690;
-  const limit = 0.62;
-  const tapImpulse = 0.255;
-  const targetSeconds = 62;
+  const limit = 0.22;
+  const tapImpulse = 0.04;
+  const targetSeconds = 48;
   let state;
   let last = performance.now();
   let audioCtx = null;
@@ -106,21 +125,32 @@
   let calloutTimer = 0;
   let finishedAt = 0;
 
-  function reset() {
+  function reset(started = false) {
     state = {
       theta: 0.05,
       omega: 0,
       progress: 0,
       drops: 0,
       elapsed: 0,
+      lastTapElapsed: -10,
+      started,
       finished: false,
       wobbleSeed: Math.random() * 1000,
       confetti: []
     };
     finish.hidden = true;
+    startOverlay.hidden = started;
     callout.classList.remove('show');
-    statusText.textContent = '下がった側をタップして支えます';
+    statusText.textContent = started ? '下がった側をタップして支えます' : '遊び方を読んでタップでスタート';
     fill.style.width = '0%';
+    last = performance.now();
+  }
+
+  function startGame() {
+    if (state.started) return;
+    state.started = true;
+    startOverlay.hidden = true;
+    statusText.textContent = '下がった側をタップして支えます';
     last = performance.now();
   }
 
@@ -159,18 +189,35 @@
     calloutTimer = setTimeout(() => callout.classList.remove('show'), 720);
   }
 
-  function tapSide(x) {
-    if (state.finished) return;
-    const rect = canvas.getBoundingClientRect();
-    const localX = x - rect.left;
-    state.omega += localX < rect.width / 2 ? tapImpulse : -tapImpulse;
-    state.theta += localX < rect.width / 2 ? 0.035 : -0.035;
-    state.theta = Math.max(-limit * 0.85, Math.min(limit * 0.85, state.theta));
+  function applyTapDir(dir) {
+    state.lastTapElapsed = state.elapsed;
+    const correctSide = (state.theta < 0 && dir > 0) || (state.theta > 0 && dir < 0);
+    if (Math.abs(state.theta) < 0.005) {
+      state.omega *= 0.05;
+    } else if (correctSide) {
+      state.theta *= 0.01;
+      state.omega *= 0.01;
+    } else {
+      state.omega = state.omega * 0.35 + dir * tapImpulse;
+      state.theta += dir * 0.04;
+      state.theta = Math.max(-limit * 0.85, Math.min(limit * 0.85, state.theta));
+    }
     taiko();
     if (Math.random() < 0.22) {
       popCallout('わっしょい！');
       voice();
     }
+  }
+
+  function tapSide(x, forceTap = false) {
+    if (!state.started) {
+      startGame();
+      if (!forceTap) return;
+    }
+    if (state.finished) return;
+    const rect = canvas.getBoundingClientRect();
+    const localX = x - rect.left;
+    applyTapDir(localX < rect.width / 2 ? 1 : -1);
   }
 
   stage.addEventListener('pointerdown', (ev) => {
@@ -192,7 +239,14 @@
   });
   againBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
-    reset();
+    reset(true);
+  });
+
+  startOverlay.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      startGame();
+    }
   });
 
   function addConfetti() {
@@ -226,16 +280,17 @@
   }
 
   function update(dt) {
+    if (!state.started) return;
     if (state.finished) {
       state.confetti.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.a += dt * 6; if (p.y > H + 20) p.y = rand(-180, -20); });
       return;
     }
     state.elapsed += dt;
-    const difficulty = 1 + state.progress * 1.8;
-    const drift = Math.sin(state.elapsed * 1.7 + state.wobbleSeed) * 0.18 + Math.sin(state.elapsed * 3.1) * 0.08;
-    const randomKick = (Math.random() - 0.5) * 0.18 * difficulty;
-    state.omega += (state.theta * 1.48 * difficulty + drift * 0.12 + randomKick) * dt;
-    state.omega *= Math.pow(0.985, dt * 60);
+    const difficulty = Math.min(1.6, 1 + state.progress * 0.5);
+    const drift = Math.sin(state.elapsed * 1.7 + state.wobbleSeed) * 0.04 + Math.sin(state.elapsed * 3.1) * 0.02;
+    const randomKick = (Math.random() - 0.5) * 0.003 * difficulty;
+    state.omega += (state.theta * 6 * difficulty + drift * 0.02 + randomKick) * dt;
+    state.omega *= Math.pow(0.97, dt * 60);
     state.theta += state.omega * dt;
     state.progress += dt / targetSeconds;
     fill.style.width = `${Math.min(100, state.progress * 100).toFixed(2)}%`;
@@ -243,7 +298,14 @@
       popCallout('わっしょい！');
       voice();
     }
-    if (Math.abs(state.theta) > limit) failReset();
+    if (Math.abs(state.theta) > limit) {
+      if (state.elapsed - state.lastTapElapsed < 2.5) {
+        state.theta = Math.sign(state.theta) * limit * 0.35;
+        state.omega *= 0.03;
+      } else {
+        failReset();
+      }
+    }
     if (state.progress >= 1) finishGame();
   }
 
@@ -351,23 +413,32 @@
     }
   }
 
-  function loop(now) {
-    const dt = Math.min(0.033, (now - last) / 1000);
+  function step(now) {
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
     last = now;
     update(dt);
     draw();
+  }
+
+  function loop(now) {
+    step(now);
     requestAnimationFrame(loop);
   }
 
   window.__omikoshiDebug = {
     getState: () => ({ theta: state.theta, progress: state.progress, finished: state.finished, drops: state.drops }),
-    forceGoal: () => { state.progress = 1; finishGame(); draw(); },
-    tapLeft: () => tapSide(canvas.getBoundingClientRect().left + 20),
-    tapRight: () => tapSide(canvas.getBoundingClientRect().left + canvas.getBoundingClientRect().width - 20)
+    forceGoal: () => { startGame(); state.progress = 1; finishGame(); draw(); },
+    tapLeft: () => { startGame(); if (!state.finished) applyTapDir(1); },
+    tapRight: () => { startGame(); if (!state.finished) applyTapDir(-1); },
+    start: startGame
   };
 
-  reset();
+  reset(false);
   requestAnimationFrame(loop);
+  setInterval(() => {
+    const now = performance.now();
+    if (now - last > 80) step(now);
+  }, 50);
 })();
 </script>
 </body>

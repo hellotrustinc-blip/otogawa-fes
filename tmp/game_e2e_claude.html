@@ -29,40 +29,48 @@
         r.iframeWidth = f.getBoundingClientRect().width;
         const canvas = doc.querySelector('canvas');
         r.hasCanvas = !!canvas;
-        const ctx = canvas.getContext('2d');
-        const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let nonBg = 0;
-        const r0 = img[0], g0 = img[1], b0 = img[2];
-        for (let i = 0; i < img.length; i += 4) {
-          if (img[i] !== r0 || img[i + 1] !== g0 || img[i + 2] !== b0) nonBg++;
-        }
-        r.nonBgPixels = nonBg;
-        // 同期タップ補正量の実測（フレーム間ドリフト混入なし）
-        const t0 = dbg.getState().theta;
-        dbg.tapLeft();
-        const t1 = dbg.getState().theta;
-        r.dbgTapDelta = t1 - t0;
-        // 実イベント経路: canvas上へ実PointerEvent(右側)を発火し同期でθ変化を見る
-        const rect = canvas.getBoundingClientRect();
-        const t2 = dbg.getState().theta;
-        const ev = new w.PointerEvent('pointerdown', {
-          clientX: rect.left + rect.width - 15,
-          clientY: rect.top + rect.height / 2,
+        // 追補1: スタートオーバーレイの初期表示・開始前は進行停止
+        const textBefore = doc.body.innerText.replace(/\s+/g, ' ');
+        r.overlayShown = textBefore.includes('タップでスタート');
+        r.guideShown = textBefore.includes('下がった側');
+        const p0 = dbg.getState().progress;
+        r.pausedBeforeStart = p0 === 0;
+        // 実イベント経路の証明: 実PointerEventでオーバーレイを解除しゲーム開始
+        // （タップ補正の有効性証明は tmp/game_autoplay_e2e.html が担う）
+        const overlay = doc.getElementById('startOverlay') || doc.querySelector('.start-overlay');
+        const orect = overlay.getBoundingClientRect();
+        overlay.dispatchEvent(new w.PointerEvent('pointerdown', {
+          clientX: orect.left + orect.width / 2, clientY: orect.top + orect.height / 2,
           bubbles: true, cancelable: true, pointerId: 1
-        });
-        canvas.dispatchEvent(ev);
-        const t3 = dbg.getState().theta;
-        r.realTapDelta = t3 - t2;
-        r.progress = dbg.getState().progress;
-        // ゴール演出
-        dbg.forceGoal();
+        }));
         setTimeout(() => {
-          const text = doc.body.innerText.replace(/\s+/g, ' ');
-          r.finishTextFound = text.includes('奉納完了');
-          r.retryFound = text.includes('もう一回');
-          r.finished = dbg.getState().finished;
-          out(r);
-        }, 300);
+          const textAfter = doc.body.innerText.replace(/\s+/g, ' ');
+          r.overlayGone = !textAfter.includes('タップでスタート');
+          // 開始1秒強で落下→進捗5%ペナルティでprogressが0に戻り得るため、
+          // 「進捗または落下が発生した」ことをもってゲーム進行中と判定する
+          const st = dbg.getState();
+          r.progressAtCheck = st.progress;
+          r.dropsAtCheck = st.drops;
+          r.gameRunning = st.progress > 0 || st.drops > 0;
+          // canvas実描画
+          const ctx = canvas.getContext('2d');
+          const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          let nonBg = 0;
+          const r0 = img[0], g0 = img[1], b0 = img[2];
+          for (let i = 0; i < img.length; i += 4) {
+            if (img[i] !== r0 || img[i + 1] !== g0 || img[i + 2] !== b0) nonBg++;
+          }
+          r.nonBgPixels = nonBg;
+          // ゴール演出
+          dbg.forceGoal();
+          setTimeout(() => {
+            const text = doc.body.innerText.replace(/\s+/g, ' ');
+            r.finishTextFound = text.includes('奉納完了');
+            r.retryFound = text.includes('もう一回');
+            r.finished = dbg.getState().finished;
+            out(r);
+          }, 300);
+        }, 1200);
       } catch (e) {
         out({ error: String(e) });
       }
