@@ -20,6 +20,9 @@ if (!/href=["']https:\/\/sites\.google\.com\/view\/otogawafes\/%E3%83%9B%E3%83%B
 if (!/あなたは小頭/.test(game)) fail('小頭の役割説明がありません');
 if (!/id=["']modeEasy["']/.test(game)) fail('かんたんモードボタン modeEasy がありません');
 if (!/id=["']modeHard["']/.test(game)) fail('むずかしいモードボタン modeHard がありません');
+if (!/id=["']rankBtn["']/.test(game)) fail('ランキングボタン rankBtn がありません');
+if (!/ほんみょうは入れないでね/.test(game)) fail('ほんみょう注意書きがありません');
+if (!/ランキングにとうろく/.test(game)) fail('ランキング登録ボタンがありません');
 if (!/神輿を収めろ/.test(game)) fail('収めフェーズの表示がありません');
 if (!/phase:\s*state\.phase/.test(game)) fail('getState() に phase がありません');
 if (!/osame:\s*state\.osame/.test(game)) fail('getState() に osame がありません');
@@ -34,6 +37,14 @@ if (!/const\s+cx\s*=\s*W\s*\/\s*2\s*;/.test(game)) fail('神輿一団の描画x�
 if (!/state\.mode\s*!==\s*['"]hard['"][\s\S]*右が下がり気味[\s\S]*左が下がり気味/.test(game)) fail('hard モードで傾き方向ガイドを非表示にする条件がありません');
 if (!/⬇下がった側をタップ！/.test(game)) fail('下部の静的ガイドがありません');
 if (/<(?:script|img|audio|source|iframe|link)\b[^>]*(?:src|href)=["']https?:\/\/(?!sites\.google\.com\/view\/otogawafes\/%E3%83%9B%E3%83%BC%E3%83%A0)/i.test(game)) fail('game.html に許可以外の外部URL参照があります');
+const allowedGasUrl = 'https://script.google.com/macros/s/AKfycbze0fQizkV9H40tu0_XSmC4DM5MuD_2PZDsKxgZcjwprYpCK2SESj3jKcP0-h1khO_F/exec';
+const externalUrls = [...game.matchAll(/https?:\/\/[^'"`\s<>)]+/g)].map((match) => match[0]);
+const disallowedUrls = externalUrls.filter((url) =>
+  url !== allowedGasUrl &&
+  url !== 'https://sites.google.com/view/otogawafes/%E3%83%9B%E3%83%BC%E3%83%A0' &&
+  url !== 'http://www.w3.org/2000/svg'
+);
+if (disallowedUrls.length) fail(`game.html に許可以外の外部URLがあります: ${disallowedUrls.join(', ')}`);
 if (/\bfetch\s*\(\s*["']https?:\/\//i.test(game)) fail('game.html に外部 fetch があります');
 if (!/href=["']game\.html["']/.test(index)) fail('index.html に game.html へのリンクがありません');
 

@@ -297,3 +297,51 @@
 - ブラウザ実測: ローカルHTTPサーバーと Chrome headless `--dump-dom --virtual-time-budget=160000` で `tmp/game_autoplay_e2e.html` と `?mode=hard` を実行したが、どちらも `E2E_RESULT` がDOMに出力されなかったため未検証。easy 100msボットと hardスマートボットの finished/elapsedSec は検収者が実測する。
 - 確認方法: スクリーンショット実測では、canvas幅390pxの中央 x=195 上に神輿本体と担ぎ手一団の水平中心があることを確認する。easy開始後は上部に「右が下がり気味／左が下がり気味」が表示され、hard開始後は同表示が消え、左上の「むずかしい」表示と下部静的ガイドだけが残ることを確認する。
 - 禁止事項確認: 物理定数、モード仕様、収めフェーズ処理は変更していない。`tmp/notap_probe.html`、`tmp/game_e2e_claude.html`、`tmp/hard_probe.html`、`douga.html`、GAS、`index.html` は変更していない。git commit/push と外部リソース参照追加は実行していない。
+
+---
+
+## 追補6（2026-07-29・みんなのランキング: GASスコアAPI+ゲーム内ランキングUI）
+
+発注元が方式②（共通ランキング・既存GAS流用・ニックネーム・100位表示）を採用。町内交流が目的。
+
+### A. GASスコアAPI（お問い合わせ受け皿.gs へ追加・既存の問合せ/動画処理は無変更）
+- doPost action **'scoreAdd'**: payload {name, mode, timeSec, drops}
+  - 検証: mode∈{easy,hard}／timeSec=数値30〜3600（範囲外は拒否）／drops=0〜999／name=既存sanitizeName_流儀で制御文字・URL除去+trim+**最大10文字**・空なら「ななしのかつぎて」
+  - 保存先: スプレッドシート「大戸川祭礼 おみこしランキング」（無ければscriptが作成）のシート'ranking'に [登録日時, mode, name, timeSec, drops, hidden] を追記
+  - **hidden列**: 管理者(発注元)が手で何か書いた行はランキング除外（荒れた記録対策）
+  - 返り値: {ok:true, rank:(同mode内でこのタイムの順位)}
+- doGet action **'scoreTop'**: param mode → hidden空の行をtimeSec昇順で**上位100件** {ok:true, list:[{rank,name,timeSec,drops}]}
+- appsscript.json の oauthScopes に spreadsheets を追加（**デプロイ時に再承認1回が必要になる旨を実装報告に明記**）
+- 通信規約は既存流儀（json_・Origin対応・text/plain POST）を踏襲
+
+### B. game.html ランキングUI
+- **クリア画面**: タイムの下にニックネーム入力（最大10字・placeholder例「ニックネーム（ひらがな）」）+注意書き「※ほんみょうは入れないでね」+「ランキングにとうろく」ボタン。登録成功で「あなたは◯位！」表示→ランキング表示へ。1クリア1回のみ（送信中/送信後disabled）
+- **ランキング閲覧**: スタートオーバーレイに「ランキング」ボタン(id="rankBtn")→オーバーレイでtop100リスト（かんたん/むずかしい切替チップ・順位/ニックネーム/タイム表示・閉じるボタン）。プレイせず閲覧だけも可
+- **グレースフル**: API未デプロイ/通信失敗時は「ランキングはじゅんびちゅう」表示。ゲーム本体のプレイ・クリア演出には一切影響させない（fetch失敗でthrowさせない）
+- GAS URLはindex.htmlの問合せフォームactionと同一ベースURLを定数で使用
+- 通信はdouga.js流儀（Content-Type text/plain回避型POST・JSON）
+
+### C. 検査系の追随
+- tmp/test_game.mjs: rankBtn存在・「ほんみょうは入れないでね」存在・外部fetch検査を「上記GAS URLのみ許可」に更新
+- **tmp/rank_mock_e2e.html新設**: fetchをモックし ①登録→「あなたは◯位！」表示 ②top100（モック100件）リスト描画で390px幅が横崩れしない（scrollWidth<=390相当の実測） ③fetch失敗時「じゅんびちゅう」表示 の3状態を E2E_RESULT JSON で機械実測
+
+### 合格条件
+1. `node tmp/test_game.mjs` exit 0
+2. easy 100msボット: finished=true・50〜95秒（本体非破壊）
+3. tmp/rank_mock_e2e.html: 3状態すべてtrue（検収者がヘッドレスChromeで独立実測）
+4. 実装報告: .gs追加内容・新スコープと再承認の必要性・「GASエディタへ貼り→新バージョンデプロイ」手順1行・（ブラウザ実測不可なら未検証明記可）
+
+### 禁止事項
+- 既存の問合せ/動画GAS処理・物理定数・モード仕様の変更
+- tmp/notap_probe.html・tmp/game_e2e_claude.html・tmp/hard_probe.html・tmp/screen_probe.html・douga.html/douga.js・index.html の変更、git commit/push
+- GAS URL以外への外部通信追加
+
+## 追補6 実装報告（2026-07-29・Codex）
+- GASスコアAPI: `お問い合わせ受け皿.gs` に `doPost` action `scoreAdd` と `doGet` action `scoreTop` を追加した。既存の問い合わせ処理と動画処理の関数本体は変更せず、`scoreAdd` は mode/timeSec/drops/name を検証し、スプレッドシート「大戸川祭礼 おみこしランキング」の `ranking` シートへ `[登録日時, mode, name, timeSec, drops, hidden]` を追記する。`hidden` が空でない行は `scoreTop` と順位計算から除外する。
+- OAuth: `appsscript.json` に `https://www.googleapis.com/auth/spreadsheets` を追加した。デプロイ時にGoogle Apps Scriptの再承認が1回必要。
+- デプロイ手順: GASエディタへ `お問い合わせ受け皿.gs` と `appsscript.json` を貼り、新しいバージョンとしてウェブアプリをデプロイする。
+- game.html: クリア画面にニックネーム入力、注意書き「※ほんみょうは入れないでね」、ランキング登録ボタン、登録結果表示を追加した。スタート画面に `rankBtn` を追加し、かんたん/むずかしい切替付きtop100ランキングモーダルを追加した。API失敗時は「ランキングはじゅんびちゅう」と表示し、ゲーム本体の進行・クリア演出には影響しない。
+- 検査系: `tmp/test_game.mjs` に `rankBtn`、注意書き、登録ボタン、許可GAS URLの静的検査を追加した。`tmp/rank_mock_e2e.html` を新設し、fetchモックで登録成功表示、100件描画、通信失敗表示、390px幅崩れを `E2E_RESULT` JSONで測れるようにした。
+- 静的検査: `node --check tmp/test_game.mjs`、`node tmp/test_game.mjs`、`node tmp/test_gas_router.mjs`、`appsscript.json` のJSON parse、`game.html` inline script構文検査、`tmp/rank_mock_e2e.html` inline script構文検査、スコアAPIのVMモック検査はいずれも exit 0。`node tmp/test_game.mjs` の出力は `OK: game.html / index.html / douga.html checks passed`。スコアAPIのVMモック検査は `OK: score API mock checks passed`。
+- ブラウザ実測: Chrome `--dump-dom` はこのCodex環境で標準出力を返さなかったため、Chrome DevTools ProtocolでDOMを実測した。`tmp/rank_mock_e2e.html` は `E2E_RESULT:{"registered":true,"listed100":true,"widthOk":true,"failureReady":true,"fetchCalls":2,"scrollWidth":343}`。easy 100msボットは `E2E_RESULT:{"finished":true,"elapsedSec":53,"drops":0,"intervalMs":100,"mode":"easy","reachedOsame":true,"phase":"done"}`。
+- 禁止事項確認: 物理定数・モード仕様・収めフェーズ、既存の問い合わせ/動画GAS処理、`tmp/notap_probe.html`、`tmp/game_e2e_claude.html`、`tmp/hard_probe.html`、`tmp/screen_probe.html`、`douga.html`、`douga.js`、`index.html` は変更していない。git commit/push は実行していない。GAS URL以外への外部通信は追加していない。

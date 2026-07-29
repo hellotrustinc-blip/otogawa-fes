@@ -21,12 +21,17 @@ var CONFIG = {
 function doPost(e) {
   var route = parseJsonPost_(e);
   if (route && route.action) {
+    if (route.action === 'scoreAdd') return json_(scoreAdd_(route));
     return json_(handleVideoAction_(route));
   }
   return handleContactPost_(e);
 }
 
 function doGet(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  if (p.action === 'scoreTop') {
+    return json_(scoreTop_(p.mode));
+  }
   return ContentService.createTextOutput('大戸川祭礼サイト 動画投稿API');
 }
 
@@ -258,6 +263,95 @@ function safeOrigin_(value) {
   if (origin.indexOf('http://127.') === 0) return origin;
   if (origin.indexOf('http://localhost') === 0) return origin;
   return '';
+}
+
+function scoreAdd_(payload) {
+  try {
+    var mode = normalizeScoreMode_(payload.mode);
+    var timeSec = Number(payload.timeSec);
+    var drops = Math.floor(Number(payload.drops));
+    if (!mode) return { ok: false, error: 'mode' };
+    if (!isFinite(timeSec) || timeSec < 30 || timeSec > 3600) return { ok: false, error: 'timeSec' };
+    if (!isFinite(drops) || drops < 0 || drops > 999) return { ok: false, error: 'drops' };
+    var name = sanitizeScoreName_(payload.name);
+    var sheet = getRankingSheet_();
+    sheet.appendRow([new Date(), mode, name, timeSec, drops, '']);
+    return { ok: true, rank: rankScore_(sheet, mode, timeSec) };
+  } catch (err) {
+    return { ok: false, error: err.message || 'scoreAdd failed' };
+  }
+}
+
+function scoreTop_(modeValue) {
+  try {
+    var mode = normalizeScoreMode_(modeValue);
+    if (!mode) return { ok: false, error: 'mode' };
+    var rows = readRankingRows_(getRankingSheet_(), mode);
+    rows.sort(function(a, b) {
+      return a.timeSec - b.timeSec || a.drops - b.drops;
+    });
+    return {
+      ok: true,
+      list: rows.slice(0, 100).map(function(row, index) {
+        return { rank: index + 1, name: row.name, timeSec: row.timeSec, drops: row.drops };
+      })
+    };
+  } catch (err) {
+    return { ok: false, error: err.message || 'scoreTop failed' };
+  }
+}
+
+function normalizeScoreMode_(value) {
+  var mode = String(value || '').trim();
+  return mode === 'easy' || mode === 'hard' ? mode : '';
+}
+
+function sanitizeScoreName_(value) {
+  var raw = String(value || '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/www\.\S+/gi, '');
+  var name = sanitizeName_(raw)
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 10);
+  return name || 'ななしのかつぎて';
+}
+
+function getRankingSheet_() {
+  var files = DriveApp.getFilesByName('大戸川祭礼 おみこしランキング');
+  var spreadsheet = files.hasNext()
+    ? SpreadsheetApp.openById(files.next().getId())
+    : SpreadsheetApp.create('大戸川祭礼 おみこしランキング');
+  var sheet = spreadsheet.getSheetByName('ranking') || spreadsheet.insertSheet('ranking');
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['登録日時', 'mode', 'name', 'timeSec', 'drops', 'hidden']);
+  }
+  return sheet;
+}
+
+function readRankingRows_(sheet, mode) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  return sheet.getRange(2, 1, lastRow - 1, 6).getValues().reduce(function(list, row) {
+    var rowMode = String(row[1] || '');
+    var timeSec = Number(row[3]);
+    var drops = Math.floor(Number(row[4] || 0));
+    var hidden = String(row[5] || '').trim();
+    if (rowMode === mode && !hidden && isFinite(timeSec)) {
+      list.push({ name: sanitizeScoreName_(row[2]), timeSec: timeSec, drops: isFinite(drops) ? drops : 0 });
+    }
+    return list;
+  }, []);
+}
+
+function rankScore_(sheet, mode, timeSec) {
+  var rows = readRankingRows_(sheet, mode);
+  var rank = 1;
+  rows.forEach(function(row) {
+    if (row.timeSec < timeSec) rank += 1;
+  });
+  return rank;
 }
 
 function json_(value) {

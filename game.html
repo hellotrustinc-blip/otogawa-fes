@@ -57,6 +57,25 @@
   .mode-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .mode-btn{border:0;border-radius:8px;background:#fff1b8;color:#5a261d;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:800;font-size:1rem;padding:12px 8px;cursor:pointer}
   .mode-btn.hard{background:#243b53;color:#fff}
+  .rank-open{border:1px solid rgba(255,255,255,.55);border-radius:8px;background:rgba(255,255,255,.16);color:#fff;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:800;font-size:1rem;padding:10px;cursor:pointer}
+  .score-form{display:grid;gap:8px;margin:0 0 14px;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .score-input{width:100%;border:1px solid rgba(26,20,16,.22);border-radius:8px;padding:10px 12px;font:inherit}
+  .score-note{margin:0;color:#6d5b4a;font-size:.84rem}
+  .score-submit{border:0;border-radius:999px;background:var(--red);color:#fff;font-weight:800;padding:10px 18px;font-size:.96rem;cursor:pointer}
+  .score-submit:disabled{opacity:.55;cursor:not-allowed}
+  .rank-message{min-height:1.6em;margin:0;color:var(--red-d);font-weight:800}
+  .rank-modal{position:absolute;inset:0;display:grid;place-items:center;padding:14px;background:rgba(26,20,16,.68);z-index:5;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+  .rank-modal[hidden]{display:none}
+  .rank-panel{width:min(100%,360px);max-height:92%;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;background:#fff;color:var(--ink);border-radius:8px;border:2px solid rgba(178,58,46,.22);box-shadow:var(--shadow);padding:14px;overflow:hidden}
+  .rank-panel h2{margin:0;color:var(--red-d);font-size:1.25rem;line-height:1.3}
+  .rank-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rank-chip{border:1px solid rgba(26,20,16,.18);border-radius:999px;background:#f7f1e6;color:#5a261d;font-weight:800;padding:8px;cursor:pointer}
+  .rank-chip.active{background:var(--navy);color:#fff}
+  .rank-list{min-height:180px;overflow:auto;border-top:1px solid rgba(26,20,16,.1);border-bottom:1px solid rgba(26,20,16,.1)}
+  .rank-row{display:grid;grid-template-columns:3.2em minmax(0,1fr) 5.2em;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(26,20,16,.08);font-size:.9rem}
+  .rank-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank-time{text-align:right;font-variant-numeric:tabular-nums}
+  .rank-close{border:0;border-radius:999px;background:var(--gold);color:#2a1e05;font-weight:800;padding:10px 18px;cursor:pointer}
   footer{padding:0 14px 16px;text-align:center;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:.82rem;color:#6d5b4a}
   @media(max-width:420px){
     header{padding:0 10px}
@@ -87,6 +106,12 @@
           <div class="finish-card">
             <h1>奉納完了！<br>わっしょい！</h1>
             <p id="timeText">所要タイム 0.0秒</p>
+            <div class="score-form">
+              <input id="scoreName" class="score-input" type="text" maxlength="10" autocomplete="nickname" placeholder="ニックネーム（ひらがな）">
+              <p class="score-note">※ほんみょうは入れないでね</p>
+              <button id="scoreSubmit" class="score-submit" type="button">ランキングにとうろく</button>
+              <p id="rankMessage" class="rank-message" aria-live="polite"></p>
+            </div>
             <button id="againBtn" class="again" type="button">もう一回</button>
           </div>
         </div>
@@ -103,7 +128,19 @@
               <button id="modeEasy" class="mode-btn" type="button">かんたん</button>
               <button id="modeHard" class="mode-btn hard" type="button">むずかしい</button>
             </div>
+            <button id="rankBtn" class="rank-open" type="button">ランキング</button>
             <p class="start-action">モードをえらぶ</p>
+          </div>
+        </div>
+        <div id="rankModal" class="rank-modal" hidden>
+          <div class="rank-panel">
+            <h2>みんなのランキング</h2>
+            <div class="rank-tabs" aria-label="ランキングのモード">
+              <button id="rankEasy" class="rank-chip active" type="button">かんたん</button>
+              <button id="rankHard" class="rank-chip" type="button">むずかしい</button>
+            </div>
+            <div id="rankList" class="rank-list" aria-live="polite"></div>
+            <button id="rankClose" class="rank-close" type="button">閉じる</button>
           </div>
         </div>
         <div class="guide">⬇下がった側をタップ！</div>
@@ -129,9 +166,19 @@
   const againBtn = document.getElementById('againBtn');
   const modeEasy = document.getElementById('modeEasy');
   const modeHard = document.getElementById('modeHard');
+  const scoreName = document.getElementById('scoreName');
+  const scoreSubmit = document.getElementById('scoreSubmit');
+  const rankMessage = document.getElementById('rankMessage');
+  const rankBtn = document.getElementById('rankBtn');
+  const rankModal = document.getElementById('rankModal');
+  const rankEasy = document.getElementById('rankEasy');
+  const rankHard = document.getElementById('rankHard');
+  const rankList = document.getElementById('rankList');
+  const rankClose = document.getElementById('rankClose');
 
   const W = 390;
   const H = 690;
+  const RANKING_API_URL = 'https://script.google.com/macros/s/AKfycbze0fQizkV9H40tu0_XSmC4DM5MuD_2PZDsKxgZcjwprYpCK2SESj3jKcP0-h1khO_F/exec';
   const limit = 0.22;
   const tapImpulse = 0.04;
   const targetSeconds = 48;
@@ -142,6 +189,8 @@
   let soundOn = false;
   let calloutTimer = 0;
   let finishedAt = 0;
+  let scoreSent = false;
+  let rankMode = 'easy';
 
   function reset(started = false, mode = 'easy') {
     state = {
@@ -165,6 +214,11 @@
       confetti: []
     };
     finish.hidden = true;
+    scoreSent = false;
+    scoreName.value = '';
+    scoreSubmit.disabled = false;
+    scoreSubmit.textContent = 'ランキングにとうろく';
+    rankMessage.textContent = '';
     startOverlay.hidden = started;
     callout.classList.remove('show');
     statusText.textContent = started ? '下がった側をタップして支えます' : '遊び方を読んでタップでスタート';
@@ -306,6 +360,27 @@
     ev.stopPropagation();
     startGame('hard');
   });
+  rankBtn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+  rankBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    openRanking(state.mode || 'easy');
+  });
+  rankClose.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    rankModal.hidden = true;
+  });
+  rankEasy.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    loadRanking('easy');
+  });
+  rankHard.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    loadRanking('hard');
+  });
+  scoreSubmit.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    submitScore();
+  });
 
   startOverlay.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' || ev.key === ' ') {
@@ -364,6 +439,10 @@
     finishedAt = state.elapsed;
     addConfetti();
     timeText.textContent = `所要タイム ${finishedAt.toFixed(1)}秒`;
+    scoreSent = false;
+    scoreSubmit.disabled = false;
+    scoreSubmit.textContent = 'ランキングにとうろく';
+    rankMessage.textContent = '';
     finish.hidden = false;
     statusText.textContent = state.drops === 0 ? '完璧な差配！特別奉納です' : `奉納完了 後戻り ${state.drops}回`;
     popCallout('奉納完了！');
@@ -591,6 +670,88 @@
     forceBird: (side) => { forceBird(side); },
     mash
   };
+
+  function cleanScoreName(value) {
+    const name = String(value || '')
+      .replace(/https?:\/\/\S+/gi, '')
+      .replace(/www\.\S+/gi, '')
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .trim()
+      .slice(0, 10);
+    return name || 'ななしのかつぎて';
+  }
+
+  async function postRanking(payload) {
+    const response = await fetch(RANKING_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return response.json();
+  }
+
+  async function submitScore() {
+    if (!state.finished || scoreSent || scoreSubmit.disabled) return;
+    scoreSubmit.disabled = true;
+    scoreSubmit.textContent = 'とうろく中...';
+    rankMessage.textContent = '';
+    try {
+      const result = await postRanking({
+        action: 'scoreAdd',
+        name: cleanScoreName(scoreName.value),
+        mode: state.mode,
+        timeSec: Number(finishedAt.toFixed(1)),
+        drops: state.drops
+      });
+      if (!result || !result.ok) throw new Error('scoreAdd failed');
+      scoreSent = true;
+      rankMessage.textContent = `あなたは${result.rank}位！`;
+      scoreSubmit.textContent = 'とうろくずみ';
+      await openRanking(state.mode);
+    } catch (error) {
+      scoreSubmit.disabled = false;
+      scoreSubmit.textContent = 'ランキングにとうろく';
+      rankMessage.textContent = 'ランキングはじゅんびちゅう';
+    }
+  }
+
+  async function openRanking(mode) {
+    rankModal.hidden = false;
+    await loadRanking(mode);
+  }
+
+  async function loadRanking(mode) {
+    rankMode = mode === 'hard' ? 'hard' : 'easy';
+    rankEasy.classList.toggle('active', rankMode === 'easy');
+    rankHard.classList.toggle('active', rankMode === 'hard');
+    rankList.textContent = 'よみこみ中...';
+    try {
+      const url = `${RANKING_API_URL}?action=scoreTop&mode=${encodeURIComponent(rankMode)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (!result || !result.ok || !Array.isArray(result.list)) throw new Error('scoreTop failed');
+      renderRanking(result.list);
+    } catch (error) {
+      rankList.textContent = 'ランキングはじゅんびちゅう';
+    }
+  }
+
+  function renderRanking(list) {
+    rankList.innerHTML = '';
+    if (!list.length) {
+      rankList.textContent = 'ランキングはじゅんびちゅう';
+      return;
+    }
+    list.slice(0, 100).forEach((item, index) => {
+      const row = document.createElement('div');
+      row.className = 'rank-row';
+      const rank = Number(item.rank || index + 1);
+      const time = Number(item.timeSec || 0).toFixed(1);
+      row.innerHTML = `<span>${rank}位</span><span class="rank-name"></span><span class="rank-time">${time}秒</span>`;
+      row.querySelector('.rank-name').textContent = String(item.name || 'ななしのかつぎて').slice(0, 10);
+      rankList.appendChild(row);
+    });
+  }
 
   function forceBird(side) {
     if (state.mode !== 'hard' || state.finished || state.phase !== 'play') return;
