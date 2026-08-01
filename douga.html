@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>祭｜動画を投稿</title>
-<meta name="description" content="大戸川祭礼の動画投稿ページ。Googleアカウント不要で、スマホのブラウザから動画を投稿できます。">
+<title>祭｜動画・写真を投稿</title>
+<meta name="description" content="大戸川祭礼の動画・写真投稿ページ。Googleアカウント不要で、スマホのブラウザから動画・写真を投稿できます。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='18'%20fill='%23b23a2e'/%3E%3Ctext%20x='50'%20y='74'%20font-size='66'%20text-anchor='middle'%20fill='%23f7f1e6'%20font-family='serif'%3E%E7%A5%AD%3C/text%3E%3C/svg%3E">
 <style>
   :root{
@@ -96,21 +96,21 @@
 </header>
 <section class="hero">
   <div class="wrap">
-    <h1>動画を投稿する</h1>
-    <p class="sans">Googleアカウント不要。スマホのブラウザから、祭礼の動画を投稿できます。</p>
+    <h1>動画・写真を投稿する</h1>
+    <p class="sans">Googleアカウント不要。スマホのブラウザから、祭礼の動画・写真を投稿できます。</p>
   </div>
 </section>
 <main class="wrap">
   <div class="grid">
     <section class="panel">
-      <h2>動画を投稿する</h2>
-      <p class="note">投稿できるのは動画のみ、1本4GBまでです。お名前はニックネームでも、省略でもかまいません。</p>
+      <h2>動画・写真を投稿する</h2>
+      <p class="note">投稿できるのは動画・写真、1ファイル4GBまでです。お名前はニックネームでも、省略でもかまいません。</p>
       <!-- 検収用: douga.html?mock=1 でGAS未接続のモック表示 -->
       <ul class="rules">
-        <li>祭礼と無関係な動画は削除します。</li>
-        <li>周囲の方に配慮した動画をお寄せください。</li>
+        <li>祭礼と無関係な動画・写真は削除します。</li>
+        <li>周囲の方に配慮した動画・写真をお寄せください。</li>
       </ul>
-      <div id="upload-waiting" class="waiting">動画投稿は準備中です。</div>
+      <div id="upload-waiting" class="waiting">動画・写真投稿は準備中です。</div>
       <form id="upload-form">
         <div id="upload-ready">
           <div class="step">
@@ -120,27 +120,27 @@
             </label>
           </div>
           <div class="step">
-            <div class="step-title"><span class="step-badge">2</span><span>手順2. 「ファイルを選ぶ」を押して動画を選ぶ（複数可）</span></div>
-            <input id="video-files" class="visually-hidden-file" type="file" accept="video/*" multiple>
+            <div class="step-title"><span class="step-badge">2</span><span>手順2. 「ファイルを選ぶ」を押して動画・写真を選ぶ（複数可）</span></div>
+            <input id="video-files" class="visually-hidden-file" type="file" accept="video/*,image/*" multiple>
             <button id="file-picker-button" class="file-picker-btn" type="button" aria-controls="video-files">📁 ファイルを選ぶ</button>
-            <p class="note sans">ボタンを押すとスマホの動画一覧が開きます</p>
+            <p class="note sans">ボタンを押すとスマホの動画・写真一覧が開きます</p>
             <p id="file-selection-status" class="file-status sans" aria-live="polite">まだ選ばれていません</p>
           </div>
           <div class="step">
             <div class="step-title"><span class="step-badge">3</span><span>手順3. 下の規約を確認</span></div>
             <div class="consent-box sans">
-              <h3>動画の投稿にあたって（個人情報の取り扱い・著作権）</h3>
-            <p><strong>1. 投稿できる動画</strong><br>
-ご自身が撮影した、大戸川祭礼に関する動画のみ投稿できます。第三者が撮影した動画や、他人の権利を侵害する動画は投稿しないでください。</p>
+              <h3>動画・写真の投稿にあたって（個人情報の取り扱い・著作権）</h3>
+            <p><strong>1. 投稿できる動画・写真</strong><br>
+ご自身が撮影した、大戸川祭礼に関する動画・写真のみ投稿できます。第三者が撮影した動画・写真や、他人の権利を侵害する動画・写真は投稿しないでください。</p>
 
-            <p><strong>2. 動画の著作権について</strong><br>
-投稿された動画の著作権（著作財産権）は、投稿をもって大戸川祭礼保存会に譲渡されるものとします。保存会は、祭礼の記録・保存および保存会の活動（記録集・広報・サイト掲載等）のために、動画を無償で利用（保管・複製・編集・上映・掲載）できます。投稿者は著作者人格権を行使しないものとし、投稿後の動画について削除・返却の申し立てはできないものとします。</p>
+            <p><strong>2. 動画・写真の著作権について</strong><br>
+投稿された動画・写真の著作権（著作財産権）は、投稿をもって大戸川祭礼保存会に譲渡されるものとします。保存会は、祭礼の記録・保存および保存会の活動（記録集・広報・サイト掲載等）のために、動画・写真を無償で利用（保管・複製・編集・上映・掲載）できます。投稿者は著作者人格権を行使しないものとし、投稿後の動画・写真について削除・返却の申し立てはできないものとします。</p>
 
             <p><strong>3. 写り込みへの配慮</strong><br>
-祭礼の様子には周囲の方が写り込むことがあります。投稿の際は周囲の方への配慮をお願いします。不適切と判断した動画は、保存会の判断で削除することがあります。</p>
+祭礼の様子には周囲の方が写り込むことがあります。投稿の際は周囲の方への配慮をお願いします。不適切と判断した動画・写真は、保存会の判断で削除することがあります。</p>
 
             <p><strong>4. 個人情報の取り扱い</strong><br>
-入力されたお名前（任意）は、動画の整理および必要な場合の連絡のみに使用し、それ以外の目的で利用したり第三者に提供したりすることはありません。</p>
+入力されたお名前（任意）は、動画・写真の整理および必要な場合の連絡のみに使用し、それ以外の目的で利用したり第三者に提供したりすることはありません。</p>
 
             <p><strong>5. お問い合わせ</strong><br>
 大戸川祭礼保存会 otogawa.fes@gmail.com</p>

@@ -147,6 +147,21 @@ function parseOutput(output) {
 }
 
 {
+  const { context } = makeContext();
+  const output = context.doPost({ postData: { contents: JSON.stringify({
+    action: 'initUpload',
+    fileName: '../祭礼.jpg',
+    mimeType: 'image/jpeg',
+    fileSize: 1024,
+    uploaderName: '投稿者'
+  }) } });
+  const json = parseOutput(output);
+  assert.equal(json.ok, true);
+  assert.equal(json.sessionUri, 'https://upload.example/session');
+  assert.match(json.savedName, /^2026-07-24_1234_投稿者__/);
+}
+
+{
   const { context, fetchCalls } = makeContext();
   const output = context.doPost({ postData: { contents: JSON.stringify({
     action: 'initUpload',
@@ -190,6 +205,7 @@ function parseOutput(output) {
 {
   const badMime = makeContext().context.doPost({ postData: { contents: JSON.stringify({ action: 'initUpload', fileName: 'a.txt', mimeType: 'text/plain', fileSize: 1 }) } });
   assert.equal(parseOutput(badMime).ok, false);
+  assert.equal(parseOutput(badMime).error, '動画・写真のファイルのみ投稿できます。');
 
   const tooLarge = makeContext().context.doPost({ postData: { contents: JSON.stringify({ action: 'initUpload', fileName: 'a.mp4', mimeType: 'video/mp4', fileSize: 5 * 1024 * 1024 * 1024 }) } });
   assert.equal(parseOutput(tooLarge).ok, false);

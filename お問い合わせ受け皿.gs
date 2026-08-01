@@ -107,11 +107,11 @@ function initUpload_(payload) {
   var fileSize = Number(payload.fileSize || 0);
   var uploaderName = sanitizeName_(payload.uploaderName || '匿名');
 
-  if (mimeType.indexOf('video/') !== 0) {
-    return { ok: false, error: '動画ファイルのみ投稿できます。' };
+  if (mimeType.indexOf('video/') !== 0 && mimeType.indexOf('image/') !== 0) {
+    return { ok: false, error: '動画・写真のファイルのみ投稿できます。' };
   }
   if (!fileSize || fileSize > CONFIG.MAX_BYTES) {
-    return { ok: false, error: '動画は1本4GBまでです。' };
+    return { ok: false, error: '1ファイル4GBまでです。' };
   }
   if (CONFIG.PASSWORD && String(payload.password || '') !== CONFIG.PASSWORD) {
     return { ok: false, error: '合言葉が一致しません。' };

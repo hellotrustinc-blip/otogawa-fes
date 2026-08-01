@@ -85,7 +85,7 @@ let wakeLock = null;
 let wakeLockReleaseHandler = null;
 
 const UPLOAD_ALERT_TEXT = '⚠ アップロード中です。終わるまで画面を閉じたり、他のアプリに切り替えたりしないでください';
-const UPLOAD_DONE_TEXT = '✅ 投稿が完了しました。動画は保存会にお届けしました。画面を閉じて大丈夫です';
+const UPLOAD_DONE_TEXT = '✅ 投稿が完了しました。保存会にお届けしました。画面を閉じて大丈夫です';
 
 function getUploadAlert() {
   if (typeof document === 'undefined') return null;
@@ -168,7 +168,7 @@ function setUploadSubmitState(button, uploading) {
 
 function showFileRequiredMessage(list) {
   if (!list) return;
-  list.textContent = '動画を選んでください';
+  list.textContent = '動画・写真を選んでください';
 }
 
 function clearCompletedUploadFormState(fileInput) {
@@ -181,7 +181,11 @@ function getSelectedFilesText(files) {
   const selected = Array.from(files || []);
   if (selected.length === 0) return 'まだ選ばれていません';
   if (selected.length === 1) return `選択中: ${selected[0].name}`;
-  return `選択中: ${selected.length}本の動画を選択中`;
+  return `選択中: ${selected.length}件を選択中`;
+}
+
+function isAllowedUploadMimeType(mimeType) {
+  return String(mimeType || '').startsWith('video/') || String(mimeType || '').startsWith('image/');
 }
 
 function updateSelectedFilesStatus(status, files) {
@@ -467,13 +471,13 @@ function initUploadPage() {
     for (const file of files) {
       const row = createUploadRow(file);
       list.appendChild(row.element);
-      if (!file.type.startsWith('video/')) {
-        row.fail('動画ファイルを選んでください。', null);
+      if (!isAllowedUploadMimeType(file.type)) {
+        row.fail('動画・写真を選んでください。', null);
         completedAll = false;
         continue;
       }
       if (file.size > MAX_VIDEO_BYTES) {
-        row.fail('1本4GBまでです。', null);
+        row.fail('1ファイル4GBまでです。', null);
         completedAll = false;
         continue;
       }
