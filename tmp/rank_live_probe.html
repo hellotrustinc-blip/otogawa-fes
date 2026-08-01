@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>PENDING</title>
+<style>iframe{width:390px;height:700px;border:0}</style></head>
+<body>
+<iframe id="f" src="../game.html"></iframe>
+<pre id="result">PENDING</pre>
+<script>
+  // 本番GASに対する読み取り専用の実表示検収: ランキングボタン→実リスト描画を確認
+  const out = (o) => {
+    document.getElementById('result').textContent = 'E2E_RESULT:' + JSON.stringify(o);
+    document.title = 'E2E_DONE';
+  };
+  const f = document.getElementById('f');
+  f.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        const doc = f.contentDocument;
+        const w = f.contentWindow;
+        const btn = doc.getElementById('rankBtn');
+        const r = { hasRankBtn: !!btn };
+        btn.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+        setTimeout(() => {
+          const text = doc.body.innerText.replace(/\s+/g, ' ');
+          r.preparing = text.includes('じゅんびちゅう');
+          r.listShown = /1位|１位|#1|No\.?1/.test(text) || text.includes('せつぞくてすと');
+          r.testEntryVisible = text.includes('せつぞくてすと');
+          out(r);
+        }, 6000);
+      } catch (e) { out({ error: String(e) }); }
+    }, 1500);
+  });
+</script>
+</body>
+</html>
